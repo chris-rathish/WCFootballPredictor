@@ -28,6 +28,7 @@ export interface Match {
   home_score: number | null
   away_score: number | null
   motm: string | null
+  winner: string | null // team that advances (knockout — handles penalties)
   status: 'scheduled' | 'finished'
   created_at: string
 }
@@ -39,6 +40,7 @@ export interface Prediction {
   home_score: number | null
   away_score: number | null
   motm: string | null
+  winner: string | null // predicted team to advance (knockout)
   points: number
   updated_at?: string
 }
@@ -81,6 +83,11 @@ export interface Settings {
   pts_final: number
   pts_champion: number
   pts_third: number
+}
+
+// knockout matches have a single winner (penalties if level) — group matches can draw.
+export function isKnockout(m: Match): boolean {
+  return m.stage !== 'group'
 }
 
 // helper: is a match locked for predictions?

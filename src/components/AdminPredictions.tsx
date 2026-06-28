@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { BracketPicks, Match, Prediction, Profile, R32Matchup, Settings } from '../lib/types'
+import { isKnockout, type BracketPicks, type Match, type Prediction, type Profile, type R32Matchup, type Settings } from '../lib/types'
 import Bracket from './Bracket'
 import Team from './Team'
 import MotmInput from './MotmInput'
@@ -91,15 +91,18 @@ function MatchEditor({ userId, matches }: { userId: string; matches: Match[] }) 
 }
 
 function PredRow({ match, userId, pred, onSaved }: { match: Match; userId: string; pred: Prediction | null; onSaved: () => void }) {
+  const knockout = isKnockout(match)
   const [home, setHome] = useState(pred?.home_score?.toString() ?? '')
   const [away, setAway] = useState(pred?.away_score?.toString() ?? '')
   const [motm, setMotm] = useState(pred?.motm ?? '')
+  const [winner, setWinner] = useState(pred?.winner ?? '')
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     setHome(pred?.home_score?.toString() ?? '')
     setAway(pred?.away_score?.toString() ?? '')
     setMotm(pred?.motm ?? '')
+    setWinner(pred?.winner ?? '')
   }, [pred])
 
   async function save() {
@@ -109,6 +112,7 @@ function PredRow({ match, userId, pred, onSaved }: { match: Match; userId: strin
       home_score: home === '' ? null : parseInt(home, 10),
       away_score: away === '' ? null : parseInt(away, 10),
       motm: motm.trim() || null,
+      winner: knockout ? winner || null : null,
     }
     const { error } = await supabase.from('predictions').upsert(payload, { onConflict: 'user_id,match_id' })
     if (error) return alert(error.message)
@@ -132,6 +136,13 @@ function PredRow({ match, userId, pred, onSaved }: { match: Match; userId: strin
         <input className="input w-12 text-center" value={home} onChange={(e) => setHome(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
         <span>:</span>
         <input className="input w-12 text-center" value={away} onChange={(e) => setAway(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
+        {knockout && (
+          <select className="input w-32" value={winner} onChange={(e) => setWinner(e.target.value)} title="Predicted to advance">
+            <option value="">Advances…</option>
+            <option value={match.home_team}>{match.home_team}</option>
+            <option value={match.away_team}>{match.away_team}</option>
+          </select>
+        )}
         <MotmInput home={match.home_team} away={match.away_team} value={motm} onChange={setMotm} placeholder="MOTM" className="input w-44" />
         <button className="btn-primary px-3 py-1" onClick={save}>
           Save

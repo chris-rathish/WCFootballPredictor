@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { hasStarted, isPredictable, outcomeLabel, predictionOpensAt, type Match, type Prediction } from '../lib/types'
+import { hasStarted, isKnockout, isPredictable, outcomeLabel, predictionOpensAt, type Match, type Prediction } from '../lib/types'
 import { scorePrediction } from '../lib/scoring'
 import Team from './Team'
 import MotmInput from './MotmInput'
@@ -17,6 +17,7 @@ interface OtherPred {
   home_score: number | null
   away_score: number | null
   motm: string | null
+  winner: string | null
   points: number
   display_name: string
 }
@@ -27,9 +28,11 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
   const started = hasStarted(match)
   const finished = match.status === 'finished'
 
+  const knockout = isKnockout(match)
   const [home, setHome] = useState<string>(myPrediction?.home_score?.toString() ?? '')
   const [away, setAway] = useState<string>(myPrediction?.away_score?.toString() ?? '')
   const [motm, setMotm] = useState<string>(myPrediction?.motm ?? '')
+  const [winner, setWinner] = useState<string>(myPrediction?.winner ?? '')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [others, setOthers] = useState<OtherPred[] | null>(null)
@@ -39,22 +42,25 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
     setHome(myPrediction?.home_score?.toString() ?? '')
     setAway(myPrediction?.away_score?.toString() ?? '')
     setMotm(myPrediction?.motm ?? '')
+    setWinner(myPrediction?.winner ?? '')
   }, [myPrediction])
 
-  const complete = home !== '' && away !== '' && motm.trim() !== ''
+  const complete =
+    home !== '' && away !== '' && motm.trim() !== '' && (!knockout || winner !== '')
 
   async function loadOthers() {
     setShowOthers(true)
     if (others) return
     const { data } = await supabase
       .from('predictions')
-      .select('user_id, home_score, away_score, motm, points, profiles(display_name)')
+      .select('user_id, home_score, away_score, motm, winner, points, profiles(display_name)')
       .eq('match_id', match.id)
     const rows: OtherPred[] = (data ?? []).map((r: any) => ({
       user_id: r.user_id,
       home_score: r.home_score,
       away_score: r.away_score,
       motm: r.motm,
+      winner: r.winner,
       points: r.points,
       display_name: r.profiles?.display_name ?? '—',
     }))
@@ -72,6 +78,7 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
       home_score: parseInt(home, 10),
       away_score: parseInt(away, 10),
       motm: motm.trim(),
+      winner: knockout ? winner : null,
     }
     const { error } = await supabase.from('predictions').upsert(payload, { onConflict: 'user_id,match_id' })
     setSaving(false)
@@ -100,6 +107,7 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
           home_score: myPrediction.home_score,
           away_score: myPrediction.away_score,
           motm: myPrediction.motm,
+          winner: myPrediction.winner,
         })
       : null
 
@@ -148,8 +156,13 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
       </div>
 
       {finished && (
-        <div className="mt-1 flex items-center justify-center gap-1 text-xs text-red-300">
-          Result: <Team name={outcomeLabel(match.home_score, match.away_score, match.home_team, match.away_team)} height={12} />
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-1 text-xs text-red-300">
+          Result: {match.home_score}–{match.away_score}
+          {knockout && match.winner && (
+            <>
+              {' '}· advances: <Team name={match.winner} height={12} />
+            </>
+          )}
           {match.motm && <> · MOTM: {match.motm}</>}
         </div>
       )}
@@ -157,6 +170,25 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
       {/* Editable form — only on match day, before kickoff */}
       {predictable && (
         <div className="mt-3 space-y-2">
+          {knockout && (
+            <div>
+              <div className="mb-1 text-xs text-zinc-400">Who advances? (penalties count)</div>
+              <div className="grid grid-cols-2 gap-2">
+                {[match.home_team, match.away_team].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setWinner(t)}
+                    className={`rounded-md px-2 py-1.5 text-sm transition ${
+                      winner === t ? 'bg-red-600 text-white font-semibold' : 'bg-zinc-700/60 text-zinc-200 hover:bg-zinc-600'
+                    }`}
+                  >
+                    <Team name={t} height={12} className="w-full justify-center" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <MotmInput
             home={match.home_team}
             away={match.away_team}
@@ -168,7 +200,11 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
             <button className="btn-primary" onClick={save} disabled={saving || !complete}>
               {saving ? 'Saving…' : myPrediction ? 'Update pick' : 'Save pick'}
             </button>
-            {!complete && <span className="text-xs text-amber-300">Score &amp; MOTM required</span>}
+            {!complete && (
+              <span className="text-xs text-amber-300">
+                {knockout ? 'Score, winner & MOTM required' : 'Score & MOTM required'}
+              </span>
+            )}
             {msg && <span className="text-sm text-red-300">{msg}</span>}
           </div>
         </div>
@@ -197,6 +233,7 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
           {myPrediction ? (
             <div className="text-sm text-zinc-300">
               Your pick: <span className="font-semibold">{myPrediction.home_score ?? '–'}–{myPrediction.away_score ?? '–'}</span>
+              {knockout && myPrediction.winner && <> · advances: {myPrediction.winner}</>}
               {myPrediction.motm && <> · MOTM: {myPrediction.motm}</>}
               {previewPts != null && (
                 <span className="ml-2 pill bg-red-500/20 text-red-300">+{previewPts} pts</span>
@@ -217,6 +254,7 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
                   <tr>
                     <th className="py-1 pr-3">Player</th>
                     <th className="py-1 pr-3">Score</th>
+                    {knockout && <th className="py-1 pr-3">Advances</th>}
                     <th className="py-1 pr-3">MOTM</th>
                     <th className="py-1 text-right">Pts</th>
                   </tr>
@@ -228,6 +266,7 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
                       <td className="py-1 pr-3 tabular-nums">
                         {o.home_score ?? '–'}–{o.away_score ?? '–'}
                       </td>
+                      {knockout && <td className="py-1 pr-3 text-zinc-400">{o.winner ?? '—'}</td>}
                       <td className="py-1 pr-3 text-zinc-400">{o.motm ?? '—'}</td>
                       <td className="py-1 text-right font-semibold tabular-nums">{o.points}</td>
                     </tr>

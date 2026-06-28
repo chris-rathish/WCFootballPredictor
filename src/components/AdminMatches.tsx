@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { isLocked, type Match, type Stage } from '../lib/types'
+import { isKnockout, isLocked, type Match, type Stage } from '../lib/types'
 import { TEAM_NAMES, TEAM_DATALIST_ID } from '../lib/flags'
 import Team from './Team'
 import MotmInput from './MotmInput'
@@ -177,9 +177,11 @@ export default function AdminMatches() {
 }
 
 function ResultRow({ match, onChanged, onDelete }: { match: Match; onChanged: () => void; onDelete: () => void }) {
+  const knockout = isKnockout(match)
   const [home, setHome] = useState(match.home_score?.toString() ?? '')
   const [away, setAway] = useState(match.away_score?.toString() ?? '')
   const [motm, setMotm] = useState(match.motm ?? '')
+  const [winner, setWinner] = useState(match.winner ?? '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -192,6 +194,7 @@ function ResultRow({ match, onChanged, onDelete }: { match: Match; onChanged: ()
         home_score: home === '' ? null : parseInt(home, 10),
         away_score: away === '' ? null : parseInt(away, 10),
         motm: motm.trim() || null,
+        winner: knockout ? winner || null : null,
         status: finish ? 'finished' : 'scheduled',
       })
       .eq('id', match.id)
@@ -218,6 +221,13 @@ function ResultRow({ match, onChanged, onDelete }: { match: Match; onChanged: ()
         <input className="input w-12 text-center" value={home} onChange={(e) => setHome(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
         <span>:</span>
         <input className="input w-12 text-center" value={away} onChange={(e) => setAway(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
+        {knockout && (
+          <select className="input w-36" value={winner} onChange={(e) => setWinner(e.target.value)} title="Team that advanced (penalties count)">
+            <option value="">Advances…</option>
+            <option value={match.home_team}>{match.home_team}</option>
+            <option value={match.away_team}>{match.away_team}</option>
+          </select>
+        )}
         <MotmInput home={match.home_team} away={match.away_team} value={motm} onChange={setMotm} placeholder="MOTM" className="input w-44" />
         <button className="btn-primary px-3 py-1" disabled={saving} onClick={() => saveResult(true)} title="Save result & mark finished (scores everyone)">
           {saving ? '…' : 'Finish'}

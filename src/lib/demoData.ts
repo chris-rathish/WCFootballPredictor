@@ -19,6 +19,7 @@ export interface DemoStore {
     home_score: number | null
     away_score: number | null
     motm: string | null
+    winner: string | null
     points: number
   }[]
   brackets: { user_id: string; picks: BracketPicks; points: number }[]
@@ -79,13 +80,15 @@ function iso(daysFromNow: number, hour = 18): string {
 
 function scoreOf(
   m: Match,
-  p: { home_score: number | null; away_score: number | null; motm: string | null }
+  p: { home_score: number | null; away_score: number | null; motm: string | null; winner: string | null }
 ): number {
   if (m.status !== 'finished' || m.home_score == null || m.away_score == null) return 0
   let pts = 0
   if (p.home_score === m.home_score) pts += 5
   if (p.away_score === m.away_score) pts += 5
-  if (p.home_score != null && p.away_score != null) {
+  if (m.stage !== 'group') {
+    if (m.winner && p.winner && p.winner === m.winner) pts += 5
+  } else if (p.home_score != null && p.away_score != null) {
     if (Math.sign(p.home_score - p.away_score) === Math.sign(m.home_score - m.away_score)) pts += 5
   }
   if (m.motm && p.motm && m.motm.trim().toLowerCase() === p.motm.trim().toLowerCase()) pts += 5
@@ -98,12 +101,12 @@ export function buildDemoStore(): DemoStore {
 
   // A few knockout matches: 2 finished (table has data), 2 today (predict now), 2 future (locked).
   const matches: Match[] = [
-    mk(1, 'RTT1', 'South Africa', 'Canada', iso(-1, 16), 1, 2, 'Alphonso Davies'),
-    mk(2, 'RTT2', 'Netherlands', 'Morocco', iso(-1, 20), 2, 0, 'Cody Gakpo'),
-    mk(3, 'RTT3', 'Germany', 'Paraguay', iso(0, 18), null, null, null),
-    mk(4, 'RTT4', 'France', 'Sweden', iso(0, 21), null, null, null),
-    mk(5, 'RTT5', 'Belgium', 'Senegal', iso(1, 18), null, null, null),
-    mk(6, 'RTT6', 'USA', 'Bosnia and Herzegovina', iso(1, 21), null, null, null),
+    mk(1, 'RTT1', 'South Africa', 'Canada', iso(-1, 16), 1, 2, 'Alphonso Davies', 'Canada'),
+    mk(2, 'RTT2', 'Netherlands', 'Morocco', iso(-1, 20), 2, 0, 'Cody Gakpo', 'Netherlands'),
+    mk(3, 'RTT3', 'Germany', 'Paraguay', iso(0, 18), null, null, null, null),
+    mk(4, 'RTT4', 'France', 'Sweden', iso(0, 21), null, null, null, null),
+    mk(5, 'RTT5', 'Belgium', 'Senegal', iso(1, 18), null, null, null, null),
+    mk(6, 'RTT6', 'USA', 'Bosnia and Herzegovina', iso(1, 21), null, null, null, null),
   ]
 
   const predictions: DemoStore['predictions'] = []
@@ -115,6 +118,8 @@ export function buildDemoStore(): DemoStore {
       const predHome = clamp(m.home_score! + [0, 0, 1, -1, 2][seed])
       const predAway = clamp(m.away_score! + [0, 1, 0, -1, 0][seed])
       const predMotm = idx % 3 === 0 ? m.motm! : motmGuess[(idx + m.id) % motmGuess.length]
+      // most pick the actual advancer, some pick the other team
+      const predWinner = idx % 4 === 0 ? m.home_team : m.winner!
       predictions.push({
         id: pid++,
         user_id: pl.id,
@@ -122,12 +127,13 @@ export function buildDemoStore(): DemoStore {
         home_score: predHome,
         away_score: predAway,
         motm: predMotm,
-        points: scoreOf(m, { home_score: predHome, away_score: predAway, motm: predMotm }),
+        winner: predWinner,
+        points: scoreOf(m, { home_score: predHome, away_score: predAway, motm: predMotm, winner: predWinner }),
       })
     })
   }
   // "You" already predicted today's first match (so the form shows update state)
-  predictions.push({ id: pid++, user_id: DEMO_USER_ID, match_id: 3, home_score: 2, away_score: 1, motm: 'Florian Wirtz', points: 0 })
+  predictions.push({ id: pid++, user_id: DEMO_USER_ID, match_id: 3, home_score: 2, away_score: 1, motm: 'Florian Wirtz', winner: 'Germany', points: 0 })
 
   const brackets: DemoStore['brackets'] = [
     { user_id: 'p-ajay', picks: { R16: R32.map((x) => x.home) }, points: 0 },
@@ -159,12 +165,12 @@ export function buildDemoStore(): DemoStore {
 
 function mk(
   id: number, label: string, home: string, away: string, kickoff: string,
-  hs: number | null, as: number | null, motm: string | null
+  hs: number | null, as: number | null, motm: string | null, winner: string | null
 ): Match {
   return {
     id, stage: 'R32', grp: null, label,
     home_team: home, away_team: away, kickoff,
-    home_score: hs, away_score: as, motm,
+    home_score: hs, away_score: as, motm, winner,
     status: hs != null && as != null ? 'finished' : 'scheduled',
     created_at: new Date().toISOString(),
   }

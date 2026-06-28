@@ -40,6 +40,7 @@ create table if not exists public.matches (
   home_score  int,
   away_score  int,
   motm        text,                           -- man of the match (actual)
+  winner      text,                           -- team that advanced (knockout; penalties count)
   status      text not null default 'scheduled', -- scheduled | finished
   created_at  timestamptz not null default now()
 );
@@ -54,6 +55,7 @@ create table if not exists public.predictions (
   home_score  int,
   away_score  int,
   motm        text,
+  winner      text,                           -- predicted team to advance (knockout)
   points      int  not null default 0,
   updated_at  timestamptz not null default now(),
   unique (user_id, match_id)
@@ -121,7 +123,12 @@ begin
     if pred.away_score is not null and pred.away_score = m.away_score then
       pts := pts + 5;
     end if;
-    if pred.home_score is not null and pred.away_score is not null then
+    -- outcome: knockout -> who advances (penalties count); group -> scoreline result
+    if m.stage <> 'group' then
+      if m.winner is not null and pred.winner is not null and pred.winner = m.winner then
+        pts := pts + 5;
+      end if;
+    elsif pred.home_score is not null and pred.away_score is not null then
       p_out := sign(pred.home_score - pred.away_score);
       if p_out = a_out then
         pts := pts + 5;
@@ -150,7 +157,7 @@ $$;
 
 drop trigger if exists matches_after_update on public.matches;
 create trigger matches_after_update
-  after update of home_score, away_score, motm, status on public.matches
+  after update of home_score, away_score, motm, winner, status on public.matches
   for each row execute function public.on_match_change();
 
 -- Recalculate a single prediction immediately on insert/update
@@ -171,7 +178,9 @@ begin
     a_out := sign(m.home_score - m.away_score);
     if new.home_score = m.home_score then pts := pts + 5; end if;
     if new.away_score = m.away_score then pts := pts + 5; end if;
-    if new.home_score is not null and new.away_score is not null
+    if m.stage <> 'group' then
+      if m.winner is not null and new.winner is not null and new.winner = m.winner then pts := pts + 5; end if;
+    elsif new.home_score is not null and new.away_score is not null
        and sign(new.home_score - new.away_score) = a_out then pts := pts + 5; end if;
     if m.motm is not null and new.motm is not null
        and lower(btrim(new.motm)) = lower(btrim(m.motm)) then pts := pts + 5; end if;
@@ -214,14 +223,8 @@ left join (
   select pr.user_id,
     sum(case when m.stage = 'group' then pr.points else 0 end) as group_pts,
     sum(case when m.stage <> 'group' then pr.points else 0 end) as ko_pts,
-    -- a "perfect" prediction = exact score AND exact MOTM (the full 20 points)
-    count(*) filter (
-      where m.status = 'finished'
-        and pr.home_score = m.home_score
-        and pr.away_score = m.away_score
-        and m.motm is not null and pr.motm is not null
-        and lower(btrim(pr.motm)) = lower(btrim(m.motm))
-    ) as perfect
+    -- a "perfect" prediction = the full 20 points (exact score + outcome/winner + MOTM)
+    count(*) filter (where m.status = 'finished' and pr.points = 20) as perfect
   from public.predictions pr
   join public.matches m on m.id = pr.match_id
   group by pr.user_id

@@ -2,7 +2,7 @@
 // query patterns this app uses. Activated automatically in DEMO MODE.
 import { buildDemoStore, DEMO_USER_ID, type DemoStore } from './demoData'
 
-const LS_KEY = 'wc-demo-store-v4'
+const LS_KEY = 'wc-demo-store-v5'
 
 function load(): DemoStore {
   try {
@@ -42,7 +42,9 @@ function matchPoints(m: Row, p: Row): number {
   let pts = 0
   if (p.home_score === m.home_score) pts += 5
   if (p.away_score === m.away_score) pts += 5
-  if (p.home_score != null && p.away_score != null) {
+  if (m.stage !== 'group') {
+    if (m.winner && p.winner && p.winner === m.winner) pts += 5
+  } else if (p.home_score != null && p.away_score != null) {
     if (Math.sign(p.home_score - p.away_score) === Math.sign(m.home_score - m.away_score)) pts += 5
   }
   if (m.motm && p.motm && String(m.motm).trim().toLowerCase() === String(p.motm).trim().toLowerCase()) pts += 5
@@ -92,15 +94,7 @@ function computeLeaderboard(): Row[] {
     const autoKo = mine.filter((x) => stageOf(x.match_id) !== 'group').reduce((a, b) => a + (b.points || 0), 0)
     const perfect_predictions = mine.filter((x) => {
       const m = matchOf(x.match_id)
-      return (
-        m &&
-        m.status === 'finished' &&
-        x.home_score === m.home_score &&
-        x.away_score === m.away_score &&
-        !!m.motm &&
-        !!x.motm &&
-        m.motm.trim().toLowerCase() === x.motm.trim().toLowerCase()
-      )
+      return m && m.status === 'finished' && (x.points || 0) === 20
     }).length
     const bracket = store.brackets.find((b) => b.user_id === p.id)?.points ?? 0
     const group_stage_matches = (p.gs_match_pts ?? 0) + autoGroup
