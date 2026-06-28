@@ -35,12 +35,6 @@ export default function StandingsPage() {
 
   if (loading) return <p className="text-zinc-400">Loading leaderboard…</p>
 
-  const avg = (key: keyof LeaderboardRow) => {
-    if (!rows.length) return 0
-    const sum = rows.reduce((a, r) => a + (r[key] as number), 0)
-    return Math.round(sum / rows.length)
-  }
-
   function sortBy(key: SortKey) {
     if (key === sortKey) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -89,17 +83,6 @@ export default function StandingsPage() {
             </tr>
           </thead>
           <tbody>
-            {/* Average row */}
-            <tr className="border-t border-zinc-700/40 bg-zinc-800/50 italic text-zinc-300">
-              <td className="sticky left-0 z-10 bg-zinc-800/80 px-3 py-2"></td>
-              <td className="sticky left-10 z-10 bg-zinc-800/80 px-3 py-2 font-semibold">Average</td>
-              {COLS.map((c) => (
-                <td key={c.key} className="px-3 py-2 text-right tabular-nums">
-                  {avg(c.key)}
-                </td>
-              ))}
-            </tr>
-
             {sorted.map((r, i) => {
               const me = r.user_id === session?.user?.id
               return (
