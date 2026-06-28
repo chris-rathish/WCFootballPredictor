@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { hasStarted, isPredictable, outcomeLabel, type Match, type Prediction } from '../lib/types'
+import { hasStarted, isPredictable, outcomeLabel, predictionOpensAt, type Match, type Prediction } from '../lib/types'
 import { scorePrediction } from '../lib/scoring'
 import Team from './Team'
 import { getMotmOptions, invalidateMotm, MOTM_DATALIST_ID } from '../lib/motm'
@@ -185,10 +185,20 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
         </div>
       )}
 
-      {/* Future match (not today) — not yet open */}
+      {/* Future match — window not open yet (opens 24h before kickoff) */}
       {!predictable && !started && (
         <div className="mt-3 rounded-lg bg-zinc-900/50 px-3 py-2 text-center text-sm text-zinc-400">
-          🔒 Predictions open on match day
+          🔒 Predictions open{' '}
+          {predictionOpensAt(match)
+            ? new Date(predictionOpensAt(match)!).toLocaleString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'once a kickoff time is set'}
+          {' '}(24h before kickoff)
         </div>
       )}
 

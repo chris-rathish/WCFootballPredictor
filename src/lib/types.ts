@@ -90,22 +90,22 @@ export function isLocked(m: Match): boolean {
   return false
 }
 
-// is the match kicking off on today's (local) calendar date?
-export function isToday(m: Match): boolean {
-  if (!m.kickoff) return false
-  const k = new Date(m.kickoff)
-  const now = new Date()
-  return (
-    k.getFullYear() === now.getFullYear() &&
-    k.getMonth() === now.getMonth() &&
-    k.getDate() === now.getDate()
-  )
+// Predictions open this many hours before kickoff.
+export const PREDICTION_WINDOW_HOURS = 24
+
+// When the prediction window opens (kickoff − 24h), or null if no kickoff set.
+export function predictionOpensAt(m: Match): Date | null {
+  if (!m.kickoff) return null
+  return new Date(new Date(m.kickoff).getTime() - PREDICTION_WINDOW_HOURS * 3600_000)
 }
 
 // can a user submit/edit a prediction right now?
-// Rule: only today's matches, and only before kickoff.
+// Rule: within the 24h window before kickoff, and before kickoff.
 export function isPredictable(m: Match): boolean {
-  return isToday(m) && !isLocked(m)
+  if (m.status !== 'scheduled' || !m.kickoff) return false
+  const now = Date.now()
+  const ko = new Date(m.kickoff).getTime()
+  return now >= ko - PREDICTION_WINDOW_HOURS * 3600_000 && now < ko
 }
 
 // has the match kicked off / been revealed (so others' picks become visible)?

@@ -79,4 +79,20 @@ insert into public.matches (stage, label, home_team, away_team, kickoff) values
   ('R32','RTT15','Australia','Egypt',                     now() + interval '4 days' + interval '19 hours'),
   ('R32','RTT16','Argentina','Cape Verde',                now() + interval '4 days' + interval '22 hours');
 
+-- 7) Prediction window: open from 24h before kickoff until kickoff.
+drop policy if exists predictions_write on public.predictions;
+create policy predictions_write on public.predictions for all
+  using (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from public.matches m
+      where m.id = match_id
+        and m.status = 'scheduled'
+        and m.kickoff is not null
+        and now() >= m.kickoff - interval '24 hours'
+        and now() <  m.kickoff
+    )
+  );
+
 -- bracket_r32 + deadline were already set by seed.sql; nothing else to do.

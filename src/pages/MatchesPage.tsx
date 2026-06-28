@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { isPredictable, isToday, type Match, type Prediction } from '../lib/types'
+import { isPredictable, predictionOpensAt, type Match, type Prediction } from '../lib/types'
 import MatchCard from '../components/MatchCard'
 
 export default function MatchesPage() {
@@ -30,31 +30,32 @@ export default function MatchesPage() {
     load()
   }, [load])
 
-  // Today's matches (predict now) and future matches (locked until match day).
-  const today = useMemo(() => matches.filter((m) => isToday(m) && m.status !== 'finished'), [matches])
+  // Open now (within 24h of kickoff) vs upcoming (window not open yet).
+  const open = useMemo(() => matches.filter(isPredictable), [matches])
   const upcoming = useMemo(
-    () => matches.filter((m) => !isToday(m) && m.status !== 'finished'),
+    () =>
+      matches.filter((m) => {
+        if (m.status !== 'scheduled' || !m.kickoff) return false
+        const opensAt = predictionOpensAt(m)
+        return opensAt != null && Date.now() < opensAt.getTime()
+      }),
     [matches]
   )
 
   if (loading) return <p className="text-zinc-400">Loading matches…</p>
 
-  const todayPredictable = today.some(isPredictable)
-
   return (
     <div>
       <section className="mb-8">
-        <h1 className="mb-1 text-xl font-bold">Today’s Matches</h1>
+        <h1 className="mb-1 text-xl font-bold">Open for Predictions</h1>
         <p className="mb-3 text-sm text-zinc-400">
-          {today.length === 0
-            ? 'No matches scheduled for today.'
-            : todayPredictable
-            ? 'Enter your scoreline and Man of the Match before kickoff.'
-            : 'Today’s matches have kicked off — predictions are locked.'}
+          {open.length === 0
+            ? 'Nothing open right now — predictions open 24 hours before each kickoff.'
+            : 'Enter your scoreline and Man of the Match. Locks at kickoff.'}
         </p>
-        {today.length > 0 && (
+        {open.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
-            {today.map((m) => (
+            {open.map((m) => (
               <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />
             ))}
           </div>
@@ -64,7 +65,7 @@ export default function MatchesPage() {
       {upcoming.length > 0 && (
         <section>
           <h2 className="mb-1 text-lg font-semibold">Upcoming</h2>
-          <p className="mb-3 text-sm text-zinc-400">These open for predictions on their match day.</p>
+          <p className="mb-3 text-sm text-zinc-400">These open for predictions 24 hours before kickoff.</p>
           <div className="grid gap-3 md:grid-cols-2">
             {upcoming.map((m) => (
               <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />

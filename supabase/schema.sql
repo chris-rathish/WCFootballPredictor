@@ -303,7 +303,9 @@ create policy predictions_write on public.predictions for all
       select 1 from public.matches m
       where m.id = match_id
         and m.status = 'scheduled'
-        and (m.kickoff is null or m.kickoff > now())
+        and m.kickoff is not null
+        and now() >= m.kickoff - interval '24 hours'  -- window opens 24h before kickoff
+        and now() <  m.kickoff                         -- and closes at kickoff
     )
   );
 --  admins can read & edit anyone's predictions, any time (overview/correction tool).
