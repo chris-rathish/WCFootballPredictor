@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
+import ClaimName from './components/ClaimName'
 import Layout from './components/Layout'
 import StandingsPage from './pages/StandingsPage'
 import MatchesPage from './pages/MatchesPage'
@@ -21,6 +22,11 @@ export default function App() {
 
   if (!session) {
     return <Login />
+  }
+
+  // logged in but hasn't claimed a player yet
+  if (!profile) {
+    return <ClaimName />
   }
 
   return (

@@ -4,41 +4,20 @@
 -- =====================================================================
 
 -- ---------- PROFILES ----------
--- One row per authenticated user. display_name is shown on the leaderboard.
+-- One row per player. Players are pre-loaded (e.g. carried over from a sheet) and
+-- exist before anyone logs in. On first login a user CLAIMS a player: their auth
+-- id becomes that profile's id and claimed flips to true. Trust-based pool.
 create table if not exists public.profiles (
-  id           uuid primary key references auth.users on delete cascade,
+  id           uuid primary key default gen_random_uuid(),
   display_name text not null,
   is_admin     boolean not null default false,
+  claimed      boolean not null default false,
   -- admin-managed point buckets (e.g. carry-over from the group stage / special predictions)
   gs_match_pts int not null default 0,
   gs_pred_pts  int not null default 0,
   tourney_pts  int not null default 0,
   created_at   timestamptz not null default now()
 );
-
--- add the bucket columns if upgrading an existing database
-alter table public.profiles add column if not exists gs_match_pts int not null default 0;
-alter table public.profiles add column if not exists gs_pred_pts  int not null default 0;
-alter table public.profiles add column if not exists tourney_pts  int not null default 0;
-
--- Auto-create a profile when a new auth user signs up.
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (id, display_name)
-  values (new.id, split_part(new.email, '@', 1))
-  on conflict (id) do nothing;
-  return new;
-end;
-$$;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
 
 -- ---------- TEAMS ----------
 create table if not exists public.teams (
@@ -269,12 +248,18 @@ as $$
   select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
 $$;
 
--- PROFILES: everyone can read names; you edit only your own; admins edit anyone.
+-- PROFILES: everyone can read names; claim an unclaimed player, edit your own, or
+-- (admin) edit anyone; signed-in users can also create a brand-new player.
 drop policy if exists profiles_read on public.profiles;
 create policy profiles_read on public.profiles for select using (true);
 drop policy if exists profiles_update_own on public.profiles;
-create policy profiles_update_own on public.profiles for update
-  using (auth.uid() = id or public.is_admin());
+drop policy if exists profiles_update on public.profiles;
+create policy profiles_update on public.profiles for update
+  using (claimed = false or id = auth.uid() or public.is_admin())
+  with check (id = auth.uid() or public.is_admin());
+drop policy if exists profiles_insert on public.profiles;
+create policy profiles_insert on public.profiles for insert
+  with check (id = auth.uid() or public.is_admin());
 
 -- TEAMS: everyone reads; admins write.
 drop policy if exists teams_read on public.teams;
