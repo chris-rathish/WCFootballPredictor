@@ -19,6 +19,7 @@ type SortKey = keyof LeaderboardRow
 export default function StandingsPage() {
   const { session } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[]>([])
+  const [average, setAverage] = useState<LeaderboardRow | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortKey, setSortKey] = useState<SortKey>('total_points')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -32,8 +33,8 @@ export default function StandingsPage() {
       ])
       // real players (exclude any stray "Average" profile — Average is computed)
       const real = ((lb as LeaderboardRow[]) ?? []).filter((r) => r.display_name !== AVERAGE_NAME)
-      const averageRow = computeAverageRow((m as Match[]) ?? [], (preds as any[]) ?? [])
-      setRows([...real, averageRow])
+      setRows(real)
+      setAverage(computeAverageRow((m as Match[]) ?? [], (preds as any[]) ?? []))
       setLoading(false)
     }
     load()
@@ -60,6 +61,27 @@ export default function StandingsPage() {
   })
 
   const arrow = (key: SortKey) => (key === sortKey ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '')
+
+  function renderRow(r: LeaderboardRow, rank: string | number) {
+    const me = r.user_id === session?.user?.id
+    const isAvg = r.user_id === AVERAGE_USER_ID
+    const rowBg = me ? 'bg-red-500/10' : isAvg ? 'bg-amber-500/10' : ''
+    const stickyBg = me ? 'bg-red-900/40' : isAvg ? 'bg-amber-900/30' : 'bg-night'
+    return (
+      <tr key={r.user_id} className={`border-t border-zinc-700/40 ${rowBg} ${isAvg ? 'italic' : ''}`}>
+        <td className={`sticky left-0 z-10 px-3 py-2 ${stickyBg}`}>{rank}</td>
+        <td className={`sticky left-10 z-10 px-3 py-2 font-semibold ${stickyBg} ${me ? 'text-red-200' : isAvg ? 'text-amber-200' : ''}`}>
+          {r.display_name}
+          {isAvg && <span className="ml-1 pill bg-amber-500/20 text-amber-300">consensus</span>}
+        </td>
+        {COLS.map((c) => (
+          <td key={c.key} className={`px-3 py-2 text-right tabular-nums ${c.key === 'total_points' ? 'font-bold' : ''}`}>
+            {r[c.key] as number}
+          </td>
+        ))}
+      </tr>
+    )
+  }
 
   return (
     <div>
@@ -89,29 +111,9 @@ export default function StandingsPage() {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((r, i) => {
-              const me = r.user_id === session?.user?.id
-              const isAvg = r.user_id === AVERAGE_USER_ID
-              const rowBg = me ? 'bg-red-500/10' : isAvg ? 'bg-amber-500/10' : ''
-              const stickyBg = me ? 'bg-red-900/40' : isAvg ? 'bg-amber-900/30' : 'bg-night'
-              return (
-                <tr key={r.user_id} className={`border-t border-zinc-700/40 ${rowBg} ${isAvg ? 'italic' : ''}`}>
-                  <td className={`sticky left-0 z-10 px-3 py-2 ${stickyBg}`}>{isAvg ? '〜' : i + 1}</td>
-                  <td className={`sticky left-10 z-10 px-3 py-2 font-semibold ${stickyBg} ${me ? 'text-red-200' : isAvg ? 'text-amber-200' : ''}`}>
-                    {r.display_name}
-                    {isAvg && <span className="ml-1 pill bg-amber-500/20 text-amber-300">consensus</span>}
-                  </td>
-                  {COLS.map((c) => (
-                    <td
-                      key={c.key}
-                      className={`px-3 py-2 text-right tabular-nums ${c.key === 'total_points' ? 'font-bold' : ''}`}
-                    >
-                      {r[c.key] as number}
-                    </td>
-                  ))}
-                </tr>
-              )
-            })}
+            {/* consensus pinned to the top regardless of sort */}
+            {average && renderRow(average, '〜')}
+            {sorted.map((r, i) => renderRow(r, i + 1))}
           </tbody>
         </table>
         {rows.length === 0 && <p className="p-4 text-zinc-400">No players yet.</p>}
