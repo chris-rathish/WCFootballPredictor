@@ -39,7 +39,7 @@ function Players() {
   async function load() {
     const { data } = await supabase
       .from('profiles')
-      .select('id, display_name, is_admin, gs_match_pts, gs_pred_pts, tourney_pts')
+      .select('id, display_name, is_admin, gs_match_pts, gs_pred_pts, tourney_pts, perfect_pts')
       .order('display_name')
     setRows((data as Profile[]) ?? [])
   }
@@ -52,7 +52,11 @@ function Players() {
     load()
   }
 
-  const numField = (id: string, key: 'gs_match_pts' | 'gs_pred_pts' | 'tourney_pts', val: number | undefined) => (
+  const numField = (
+    id: string,
+    key: 'gs_match_pts' | 'gs_pred_pts' | 'tourney_pts' | 'perfect_pts',
+    val: number | undefined
+  ) => (
     <input
       className="input w-20 text-right"
       inputMode="numeric"
@@ -78,6 +82,7 @@ function Players() {
               <th className="py-1 pr-3">Group Stage Matches</th>
               <th className="py-1 pr-3">Group Stage Prediction</th>
               <th className="py-1 pr-3">Tournament Predictions</th>
+              <th className="py-1 pr-3">🎯 Perfect</th>
               <th className="py-1 pr-3 text-center">Admin</th>
             </tr>
           </thead>
@@ -94,6 +99,7 @@ function Players() {
                 <td className="py-2 pr-3">{numField(p.id, 'gs_match_pts', p.gs_match_pts)}</td>
                 <td className="py-2 pr-3">{numField(p.id, 'gs_pred_pts', p.gs_pred_pts)}</td>
                 <td className="py-2 pr-3">{numField(p.id, 'tourney_pts', p.tourney_pts)}</td>
+                <td className="py-2 pr-3">{numField(p.id, 'perfect_pts', p.perfect_pts)}</td>
                 <td className="py-2 pr-3 text-center">
                   <input
                     type="checkbox"

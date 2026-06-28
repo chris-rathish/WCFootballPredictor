@@ -9,6 +9,7 @@ export interface DemoStore {
     gs_match_pts: number
     gs_pred_pts: number
     tourney_pts: number
+    perfect_pts: number
   }[]
   teams: { id: number; name: string; grp: string | null; flag: string | null }[]
   matches: Match[]
@@ -141,7 +142,7 @@ export function buildDemoStore(): DemoStore {
   ]
 
   return {
-    profiles: PLAYERS.map((p) => ({ ...p })),
+    profiles: PLAYERS.map((p) => ({ ...p, perfect_pts: 0 })),
     teams,
     matches,
     predictions,

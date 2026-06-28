@@ -16,6 +16,7 @@ create table if not exists public.profiles (
   gs_match_pts int not null default 0,
   gs_pred_pts  int not null default 0,
   tourney_pts  int not null default 0,
+  perfect_pts  int not null default 0,  -- manual / carry-over perfect-prediction count
   created_at   timestamptz not null default now()
 );
 
@@ -217,7 +218,7 @@ select
     + coalesce(mp.ko_pts, 0)
     + coalesce(b.points, 0)
     + p.tourney_pts                                                            as total_points,
-  coalesce(mp.perfect, 0)                                                       as perfect_predictions
+  p.perfect_pts + coalesce(mp.perfect, 0)                                       as perfect_predictions
 from public.profiles p
 left join (
   select pr.user_id,

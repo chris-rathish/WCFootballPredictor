@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { Match, Prediction } from '../lib/types'
+import { hasStarted, type Match, type Prediction } from '../lib/types'
 import MatchCard from '../components/MatchCard'
 
 export default function HistoryPage() {
@@ -14,7 +14,6 @@ export default function HistoryPage() {
     const { data: m } = await supabase
       .from('matches')
       .select('*')
-      .eq('status', 'finished')
       .order('kickoff', { ascending: false, nullsFirst: false })
     setMatches((m as Match[]) ?? [])
 
@@ -31,22 +30,54 @@ export default function HistoryPage() {
     load()
   }, [load])
 
+  // locked (window closed) but result not in yet — predictions visible, no score
+  const awaiting = useMemo(
+    () => matches.filter((m) => m.status !== 'finished' && hasStarted(m)),
+    [matches]
+  )
+  const completed = useMemo(() => matches.filter((m) => m.status === 'finished'), [matches])
+
   if (loading) return <p className="text-zinc-400">Loading history…</p>
 
   return (
-    <div>
-      <h1 className="mb-1 text-xl font-bold">Match History</h1>
-      <p className="mb-4 text-sm text-zinc-400">All completed matches with final results — expand any match to see everyone’s picks and points.</p>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-xl font-bold">Match History</h1>
+        <p className="text-sm text-zinc-400">Predictions are visible once the window closes (1h before kickoff).</p>
+      </div>
 
-      {matches.length === 0 ? (
-        <div className="card text-zinc-400">No matches have been completed yet.</div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {matches.map((m) => (
-            <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />
-          ))}
+      {/* Locked, awaiting result */}
+      <section>
+        <div className="mb-2 flex items-center gap-2">
+          <h2 className="text-lg font-semibold">🔒 Locked — awaiting result</h2>
+          {awaiting.length > 0 && <span className="pill bg-amber-500/20 text-amber-300">{awaiting.length}</span>}
         </div>
-      )}
+        <p className="mb-3 text-sm text-zinc-400">Predictions are in and revealed; points are added once the admin enters the result.</p>
+        {awaiting.length === 0 ? (
+          <div className="card text-sm text-zinc-500">Nothing locked right now.</div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {awaiting.map((m) => (
+              <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Completed */}
+      <section>
+        <h2 className="mb-1 text-lg font-semibold">✅ Completed</h2>
+        <p className="mb-3 text-sm text-zinc-400">Final results with everyone’s picks and points.</p>
+        {completed.length === 0 ? (
+          <div className="card text-sm text-zinc-500">No matches completed yet.</div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {completed.map((m) => (
+              <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

@@ -8,6 +8,7 @@ export interface Profile {
   gs_match_pts?: number
   gs_pred_pts?: number
   tourney_pts?: number
+  perfect_pts?: number // manual / carry-over perfect-prediction count
 }
 
 export interface Team {

@@ -2,7 +2,7 @@
 // query patterns this app uses. Activated automatically in DEMO MODE.
 import { buildDemoStore, DEMO_USER_ID, type DemoStore } from './demoData'
 
-const LS_KEY = 'wc-demo-store-v5'
+const LS_KEY = 'wc-demo-store-v6'
 
 function load(): DemoStore {
   try {
@@ -92,10 +92,12 @@ function computeLeaderboard(): Row[] {
     const mine = store.predictions.filter((x) => x.user_id === p.id)
     const autoGroup = mine.filter((x) => stageOf(x.match_id) === 'group').reduce((a, b) => a + (b.points || 0), 0)
     const autoKo = mine.filter((x) => stageOf(x.match_id) !== 'group').reduce((a, b) => a + (b.points || 0), 0)
-    const perfect_predictions = mine.filter((x) => {
-      const m = matchOf(x.match_id)
-      return m && m.status === 'finished' && (x.points || 0) === 20
-    }).length
+    const perfect_predictions =
+      (p.perfect_pts ?? 0) +
+      mine.filter((x) => {
+        const m = matchOf(x.match_id)
+        return m && m.status === 'finished' && (x.points || 0) === 20
+      }).length
     const bracket = store.brackets.find((b) => b.user_id === p.id)?.points ?? 0
     const group_stage_matches = (p.gs_match_pts ?? 0) + autoGroup
     const group_stage_prediction = p.gs_pred_pts ?? 0

@@ -13,10 +13,14 @@ const COLS: { key: keyof LeaderboardRow; label: string }[] = [
   { key: 'perfect_predictions', label: '🎯 Perfect' },
 ]
 
+type SortKey = keyof LeaderboardRow
+
 export default function StandingsPage() {
   const { session } = useAuth()
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortKey, setSortKey] = useState<SortKey>('total_points')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     supabase
@@ -37,18 +41,49 @@ export default function StandingsPage() {
     return Math.round(sum / rows.length)
   }
 
+  function sortBy(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'display_name' ? 'asc' : 'desc')
+    }
+  }
+
+  const sorted = [...rows].sort((a, b) => {
+    const av = a[sortKey]
+    const bv = b[sortKey]
+    let cmp: number
+    if (typeof av === 'string' && typeof bv === 'string') cmp = av.localeCompare(bv)
+    else cmp = (av as number) - (bv as number)
+    return sortDir === 'asc' ? cmp : -cmp
+  })
+
+  const arrow = (key: SortKey) => (key === sortKey ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '')
+
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">Leaderboard</h1>
+      <h1 className="mb-1 text-xl font-bold">Leaderboard</h1>
+      <p className="mb-4 text-xs text-zinc-500">Click any column header to sort.</p>
       <div className="overflow-x-auto rounded-xl border border-zinc-700/60">
         <table className="min-w-full border-collapse text-sm">
           <thead>
             <tr className="bg-zinc-900 text-left">
               <th className="sticky left-0 z-10 bg-zinc-900 px-3 py-2 font-semibold">#</th>
-              <th className="sticky left-10 z-10 bg-zinc-900 px-3 py-2 font-semibold">Name</th>
+              <th
+                className="sticky left-10 z-10 cursor-pointer select-none bg-zinc-900 px-3 py-2 font-semibold hover:text-red-300"
+                onClick={() => sortBy('display_name')}
+              >
+                Name{arrow('display_name')}
+              </th>
               {COLS.map((c) => (
-                <th key={c.key} className="px-3 py-2 text-right font-semibold">
+                <th
+                  key={c.key}
+                  className="cursor-pointer select-none px-3 py-2 text-right font-semibold hover:text-red-300"
+                  onClick={() => sortBy(c.key)}
+                >
                   {c.label}
+                  {arrow(c.key)}
                 </th>
               ))}
             </tr>
@@ -65,7 +100,7 @@ export default function StandingsPage() {
               ))}
             </tr>
 
-            {rows.map((r, i) => {
+            {sorted.map((r, i) => {
               const me = r.user_id === session?.user?.id
               return (
                 <tr key={r.user_id} className={`border-t border-zinc-700/40 ${me ? 'bg-red-500/10' : ''}`}>
