@@ -62,22 +62,22 @@ create policy profiles_insert on public.profiles for insert
 --    times in Admin -> Matches. (No predictions exist yet, so we reset matches.)
 delete from public.matches;
 insert into public.matches (stage, label, home_team, away_team, kickoff) values
-  ('R32','RTT1','South Africa','Canada',                  now() + interval '1 day' + interval '13 hours'),
-  ('R32','RTT2','Netherlands','Morocco',                  now() + interval '1 day' + interval '16 hours'),
-  ('R32','RTT3','Germany','Paraguay',                     now() + interval '1 day' + interval '19 hours'),
-  ('R32','RTT4','France','Sweden',                        now() + interval '1 day' + interval '22 hours'),
-  ('R32','RTT5','Belgium','Senegal',                      now() + interval '2 days' + interval '13 hours'),
-  ('R32','RTT6','USA','Bosnia and Herzegovina',           now() + interval '2 days' + interval '16 hours'),
-  ('R32','RTT7','Spain','Austria',                        now() + interval '2 days' + interval '19 hours'),
-  ('R32','RTT8','Portugal','Croatia',                     now() + interval '2 days' + interval '22 hours'),
-  ('R32','RTT9','Brazil','Japan',                         now() + interval '3 days' + interval '13 hours'),
-  ('R32','RTT10','Ivory Coast','Norway',                  now() + interval '3 days' + interval '16 hours'),
-  ('R32','RTT11','Mexico','Ecuador',                      now() + interval '3 days' + interval '19 hours'),
-  ('R32','RTT12','England','DR Congo',                    now() + interval '3 days' + interval '22 hours'),
-  ('R32','RTT13','Switzerland','Algeria',                 now() + interval '4 days' + interval '13 hours'),
-  ('R32','RTT14','Colombia','Ghana',                      now() + interval '4 days' + interval '16 hours'),
-  ('R32','RTT15','Australia','Egypt',                     now() + interval '4 days' + interval '19 hours'),
-  ('R32','RTT16','Argentina','Cape Verde',                now() + interval '4 days' + interval '22 hours');
+  ('R32','RTT1','South Africa','Canada',                  '2026-06-28 19:00:00+00'),
+  ('R32','RTT2','Netherlands','Morocco',                  '2026-06-30 01:00:00+00'),
+  ('R32','RTT3','Germany','Paraguay',                     '2026-06-29 20:30:00+00'),
+  ('R32','RTT4','France','Sweden',                        '2026-06-30 21:00:00+00'),
+  ('R32','RTT5','Belgium','Senegal',                      '2026-07-01 20:00:00+00'),
+  ('R32','RTT6','USA','Bosnia and Herzegovina',           '2026-07-02 00:00:00+00'),
+  ('R32','RTT7','Spain','Austria',                        '2026-07-02 19:00:00+00'),
+  ('R32','RTT8','Portugal','Croatia',                     '2026-07-02 23:00:00+00'),
+  ('R32','RTT9','Brazil','Japan',                         '2026-06-29 17:00:00+00'),
+  ('R32','RTT10','Ivory Coast','Norway',                  '2026-06-30 17:00:00+00'),
+  ('R32','RTT11','Mexico','Ecuador',                      '2026-07-01 01:00:00+00'),
+  ('R32','RTT12','England','DR Congo',                    '2026-07-01 16:00:00+00'),
+  ('R32','RTT13','Switzerland','Algeria',                 '2026-07-03 03:00:00+00'),
+  ('R32','RTT14','Colombia','Ghana',                      '2026-07-04 01:30:00+00'),
+  ('R32','RTT15','Australia','Egypt',                     '2026-07-03 18:00:00+00'),
+  ('R32','RTT16','Argentina','Cape Verde',                '2026-07-03 22:00:00+00');
 
 -- 7) Prediction window: open from 24h before kickoff until kickoff.
 drop policy if exists predictions_write on public.predictions;
