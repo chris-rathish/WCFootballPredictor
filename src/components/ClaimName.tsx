@@ -20,6 +20,7 @@ export default function ClaimName() {
       .from('profiles')
       .select('id, display_name')
       .eq('claimed', false)
+      .neq('display_name', 'Average') // "Average" is a computed consensus, not a claimable player
       .order('display_name')
       .then(({ data }: any) => {
         setPlayers((data as UnclaimedPlayer[]) ?? [])

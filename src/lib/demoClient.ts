@@ -125,6 +125,7 @@ function computeLeaderboard(): Row[] {
 
 class Query {
   private filters: [string, any][] = []
+  private negFilters: [string, any][] = []
   private orderBy: { col: string; ascending: boolean } | null = null
   private _single: 'single' | 'maybe' | null = null
   private cols = '*'
@@ -138,6 +139,10 @@ class Query {
   }
   eq(col: string, val: any) {
     this.filters.push([col, val])
+    return this
+  }
+  neq(col: string, val: any) {
+    this.negFilters.push([col, val])
     return this
   }
   order(col: string, opts?: { ascending?: boolean }) {
@@ -182,7 +187,9 @@ class Query {
     if (this.op) return this.runMutation()
 
     let rows = [...this.tableRows()]
-    rows = rows.filter((r) => this.filters.every(([c, v]) => r[c] === v))
+    rows = rows.filter(
+      (r) => this.filters.every(([c, v]) => r[c] === v) && this.negFilters.every(([c, v]) => r[c] !== v)
+    )
     if (this.orderBy) {
       const { col, ascending } = this.orderBy
       rows.sort((a, b) => {

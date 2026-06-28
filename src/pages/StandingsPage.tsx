@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { LeaderboardRow } from '../lib/types'
+import type { LeaderboardRow, Match } from '../lib/types'
+import { AVERAGE_NAME, AVERAGE_USER_ID, computeAverageRow } from '../lib/average'
 
 const COLS: { key: keyof LeaderboardRow; label: string }[] = [
   { key: 'total_points', label: 'Total' },
@@ -23,14 +24,19 @@ export default function StandingsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
-    supabase
-      .from('leaderboard')
-      .select('*')
-      .order('total_points', { ascending: false })
-      .then(({ data }: any) => {
-        setRows((data as LeaderboardRow[]) ?? [])
-        setLoading(false)
-      })
+    async function load() {
+      const [{ data: lb }, { data: m }, { data: preds }] = await Promise.all([
+        supabase.from('leaderboard').select('*').order('total_points', { ascending: false }),
+        supabase.from('matches').select('*'),
+        supabase.from('predictions').select('match_id, home_score, away_score, winner, motm'),
+      ])
+      // real players (exclude any stray "Average" profile — Average is computed)
+      const real = ((lb as LeaderboardRow[]) ?? []).filter((r) => r.display_name !== AVERAGE_NAME)
+      const averageRow = computeAverageRow((m as Match[]) ?? [], (preds as any[]) ?? [])
+      setRows([...real, averageRow])
+      setLoading(false)
+    }
+    load()
   }, [])
 
   if (loading) return <p className="text-zinc-400">Loading leaderboard…</p>
@@ -85,11 +91,15 @@ export default function StandingsPage() {
           <tbody>
             {sorted.map((r, i) => {
               const me = r.user_id === session?.user?.id
+              const isAvg = r.user_id === AVERAGE_USER_ID
+              const rowBg = me ? 'bg-red-500/10' : isAvg ? 'bg-amber-500/10' : ''
+              const stickyBg = me ? 'bg-red-900/40' : isAvg ? 'bg-amber-900/30' : 'bg-night'
               return (
-                <tr key={r.user_id} className={`border-t border-zinc-700/40 ${me ? 'bg-red-500/10' : ''}`}>
-                  <td className={`sticky left-0 z-10 px-3 py-2 ${me ? 'bg-red-900/40' : 'bg-night'}`}>{i + 1}</td>
-                  <td className={`sticky left-10 z-10 px-3 py-2 font-semibold ${me ? 'bg-red-900/40 text-red-200' : 'bg-night'}`}>
+                <tr key={r.user_id} className={`border-t border-zinc-700/40 ${rowBg} ${isAvg ? 'italic' : ''}`}>
+                  <td className={`sticky left-0 z-10 px-3 py-2 ${stickyBg}`}>{isAvg ? '〜' : i + 1}</td>
+                  <td className={`sticky left-10 z-10 px-3 py-2 font-semibold ${stickyBg} ${me ? 'text-red-200' : isAvg ? 'text-amber-200' : ''}`}>
                     {r.display_name}
+                    {isAvg && <span className="ml-1 pill bg-amber-500/20 text-amber-300">consensus</span>}
                   </td>
                   {COLS.map((c) => (
                     <td
@@ -107,8 +117,8 @@ export default function StandingsPage() {
         {rows.length === 0 && <p className="p-4 text-zinc-400">No players yet.</p>}
       </div>
       <p className="mt-3 text-xs text-zinc-500">
-        Match points are calculated automatically. Group-stage carry-over, group-stage prediction and
-        tournament-prediction points are managed by the admin (Admin → Players).
+        Match points are calculated automatically. <span className="text-amber-300">Average</span> is the group’s
+        consensus — each match it uses the most common score, winner and MOTM everyone picked, then is scored like a player.
       </p>
     </div>
   )
