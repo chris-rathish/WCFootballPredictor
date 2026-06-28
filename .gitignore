@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.local
+*.log
+*.out
+.DS_Store
+.vscode
+.claude
+# requires a gh token with 'workflow' scope to push; deploying via gh-pages branch instead
+.github/
