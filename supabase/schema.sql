@@ -51,7 +51,7 @@ create index if not exists matches_kickoff_idx on public.matches (kickoff);
 -- ---------- PREDICTIONS ----------
 create table if not exists public.predictions (
   id          serial primary key,
-  user_id     uuid not null references auth.users on delete cascade,
+  user_id     uuid not null references public.profiles(id) on update cascade on delete cascade,
   match_id    int  not null references public.matches on delete cascade,
   home_score  int,
   away_score  int,
@@ -65,7 +65,7 @@ create table if not exists public.predictions (
 -- ---------- BRACKETS ----------
 -- One bracket per user, stored as JSON (advancers per round + champion).
 create table if not exists public.brackets (
-  user_id    uuid primary key references auth.users on delete cascade,
+  user_id    uuid primary key references public.profiles(id) on update cascade on delete cascade,
   picks      jsonb not null default '{}'::jsonb,
   points     int   not null default 0,
   updated_at timestamptz not null default now()
