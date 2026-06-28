@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { BracketPicks, Match, Prediction, Profile, R32Matchup, Settings } from '../lib/types'
-import { getMotmOptions, invalidateMotm, MOTM_DATALIST_ID } from '../lib/motm'
 import Bracket from './Bracket'
 import Team from './Team'
+import MotmInput from './MotmInput'
 
 type View = 'matches' | 'bracket'
 
@@ -12,7 +12,6 @@ export default function AdminPredictions() {
   const [matches, setMatches] = useState<Match[]>([])
   const [userId, setUserId] = useState<string>('')
   const [view, setView] = useState<View>('matches')
-  const [motmOptions, setMotmOptions] = useState<string[]>([])
 
   useEffect(() => {
     supabase.from('profiles').select('id, display_name, is_admin').order('display_name').then(({ data }: any) => {
@@ -22,7 +21,6 @@ export default function AdminPredictions() {
     supabase.from('matches').select('*').order('kickoff', { ascending: true, nullsFirst: false }).then(({ data }: any) =>
       setMatches((data as Match[]) ?? [])
     )
-    getMotmOptions().then(setMotmOptions)
   }, [])
 
   return (
@@ -48,12 +46,6 @@ export default function AdminPredictions() {
           ))}
         </div>
       </div>
-
-      <datalist id={MOTM_DATALIST_ID}>
-        {motmOptions.map((n) => (
-          <option key={n} value={n} />
-        ))}
-      </datalist>
 
       {userId && view === 'matches' && <MatchEditor userId={userId} matches={matches} />}
       {userId && view === 'bracket' && <BracketEditor userId={userId} />}
@@ -120,7 +112,6 @@ function PredRow({ match, userId, pred, onSaved }: { match: Match; userId: strin
     }
     const { error } = await supabase.from('predictions').upsert(payload, { onConflict: 'user_id,match_id' })
     if (error) return alert(error.message)
-    invalidateMotm()
     setSaved(true)
     onSaved()
     setTimeout(() => setSaved(false), 1200)
@@ -141,7 +132,7 @@ function PredRow({ match, userId, pred, onSaved }: { match: Match; userId: strin
         <input className="input w-12 text-center" value={home} onChange={(e) => setHome(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
         <span>:</span>
         <input className="input w-12 text-center" value={away} onChange={(e) => setAway(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
-        <input className="input w-44" list={MOTM_DATALIST_ID} value={motm} onChange={(e) => setMotm(e.target.value)} placeholder="MOTM" />
+        <MotmInput home={match.home_team} away={match.away_team} value={motm} onChange={setMotm} placeholder="MOTM" className="input w-44" />
         <button className="btn-primary px-3 py-1" onClick={save}>
           Save
         </button>

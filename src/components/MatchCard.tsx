@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { hasStarted, isPredictable, outcomeLabel, predictionOpensAt, type Match, type Prediction } from '../lib/types'
 import { scorePrediction } from '../lib/scoring'
 import Team from './Team'
-import { getMotmOptions, invalidateMotm, MOTM_DATALIST_ID } from '../lib/motm'
+import MotmInput from './MotmInput'
 
 interface Props {
   match: Match
@@ -34,17 +34,12 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
   const [msg, setMsg] = useState<string | null>(null)
   const [others, setOthers] = useState<OtherPred[] | null>(null)
   const [showOthers, setShowOthers] = useState(false)
-  const [motmOptions, setMotmOptions] = useState<string[]>([])
 
   useEffect(() => {
     setHome(myPrediction?.home_score?.toString() ?? '')
     setAway(myPrediction?.away_score?.toString() ?? '')
     setMotm(myPrediction?.motm ?? '')
   }, [myPrediction])
-
-  useEffect(() => {
-    if (predictable) getMotmOptions().then(setMotmOptions)
-  }, [predictable])
 
   const complete = home !== '' && away !== '' && motm.trim() !== ''
 
@@ -84,7 +79,6 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
       setMsg(error.message)
     } else {
       setMsg('Saved ✓')
-      invalidateMotm()
       onSaved()
       setTimeout(() => setMsg(null), 1500)
     }
@@ -163,18 +157,13 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
       {/* Editable form — only on match day, before kickoff */}
       {predictable && (
         <div className="mt-3 space-y-2">
-          <input
-            className="input"
-            placeholder="Man of the Match (required)"
-            list={MOTM_DATALIST_ID}
+          <MotmInput
+            home={match.home_team}
+            away={match.away_team}
             value={motm}
-            onChange={(e) => setMotm(e.target.value)}
+            onChange={setMotm}
+            placeholder="Man of the Match (required)"
           />
-          <datalist id={MOTM_DATALIST_ID}>
-            {motmOptions.map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
           <div className="flex items-center gap-3">
             <button className="btn-primary" onClick={save} disabled={saving || !complete}>
               {saving ? 'Saving…' : myPrediction ? 'Update pick' : 'Save pick'}

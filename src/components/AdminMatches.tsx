@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { isLocked, type Match, type Stage } from '../lib/types'
 import { TEAM_NAMES, TEAM_DATALIST_ID } from '../lib/flags'
 import Team from './Team'
-import { getMotmOptions, invalidateMotm, MOTM_DATALIST_ID } from '../lib/motm'
+import MotmInput from './MotmInput'
 
 const STAGES: Stage[] = ['group', 'R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
 
@@ -20,12 +20,10 @@ export default function AdminMatches() {
   const [matches, setMatches] = useState<Match[]>([])
   const [form, setForm] = useState({ ...emptyForm })
   const [msg, setMsg] = useState<string | null>(null)
-  const [motmOptions, setMotmOptions] = useState<string[]>([])
 
   async function load() {
     const { data } = await supabase.from('matches').select('*').order('kickoff', { ascending: true, nullsFirst: false })
     setMatches((data as Match[]) ?? [])
-    getMotmOptions().then(setMotmOptions)
   }
   useEffect(() => {
     load()
@@ -68,11 +66,6 @@ export default function AdminMatches() {
 
   return (
     <div className="space-y-8">
-      <datalist id={MOTM_DATALIST_ID}>
-        {motmOptions.map((n) => (
-          <option key={n} value={n} />
-        ))}
-      </datalist>
       <datalist id={TEAM_DATALIST_ID}>
         {teamOptions.map((n) => (
           <option key={n} value={n} />
@@ -205,7 +198,6 @@ function ResultRow({ match, onChanged, onDelete }: { match: Match; onChanged: ()
     setSaving(false)
     if (!error) {
       setSaved(true)
-      invalidateMotm()
       onChanged()
       setTimeout(() => setSaved(false), 1500)
     } else {
@@ -226,13 +218,7 @@ function ResultRow({ match, onChanged, onDelete }: { match: Match; onChanged: ()
         <input className="input w-12 text-center" value={home} onChange={(e) => setHome(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
         <span>:</span>
         <input className="input w-12 text-center" value={away} onChange={(e) => setAway(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
-        <input
-          className="input w-44"
-          list={MOTM_DATALIST_ID}
-          value={motm}
-          onChange={(e) => setMotm(e.target.value)}
-          placeholder="MOTM"
-        />
+        <MotmInput home={match.home_team} away={match.away_team} value={motm} onChange={setMotm} placeholder="MOTM" className="input w-44" />
         <button className="btn-primary px-3 py-1" disabled={saving} onClick={() => saveResult(true)} title="Save result & mark finished (scores everyone)">
           {saving ? '…' : 'Finish'}
         </button>

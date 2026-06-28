@@ -90,27 +90,34 @@ export function isLocked(m: Match): boolean {
   return false
 }
 
-// Predictions open this many hours before kickoff.
-export const PREDICTION_WINDOW_HOURS = 24
+// Prediction window: opens 24h before kickoff, closes 1h before kickoff.
+export const PREDICTION_OPEN_HOURS = 24
+export const PREDICTION_CLOSE_HOURS = 1
 
-// When the prediction window opens (kickoff − 24h), or null if no kickoff set.
 export function predictionOpensAt(m: Match): Date | null {
   if (!m.kickoff) return null
-  return new Date(new Date(m.kickoff).getTime() - PREDICTION_WINDOW_HOURS * 3600_000)
+  return new Date(new Date(m.kickoff).getTime() - PREDICTION_OPEN_HOURS * 3600_000)
+}
+
+export function predictionClosesAt(m: Match): Date | null {
+  if (!m.kickoff) return null
+  return new Date(new Date(m.kickoff).getTime() - PREDICTION_CLOSE_HOURS * 3600_000)
 }
 
 // can a user submit/edit a prediction right now?
-// Rule: within the 24h window before kickoff, and before kickoff.
+// Rule: from 24h before kickoff until 1h before kickoff.
 export function isPredictable(m: Match): boolean {
   if (m.status !== 'scheduled' || !m.kickoff) return false
   const now = Date.now()
   const ko = new Date(m.kickoff).getTime()
-  return now >= ko - PREDICTION_WINDOW_HOURS * 3600_000 && now < ko
+  return now >= ko - PREDICTION_OPEN_HOURS * 3600_000 && now < ko - PREDICTION_CLOSE_HOURS * 3600_000
 }
 
-// has the match kicked off / been revealed (so others' picks become visible)?
+// predictions locked & revealed to everyone (window closed: 1h before kickoff, or finished).
 export function hasStarted(m: Match): boolean {
-  return isLocked(m)
+  if (m.status === 'finished') return true
+  if (!m.kickoff) return false
+  return Date.now() >= new Date(m.kickoff).getTime() - PREDICTION_CLOSE_HOURS * 3600_000
 }
 
 export function outcomeLabel(home: number | null, away: number | null, homeTeam: string, awayTeam: string): string {

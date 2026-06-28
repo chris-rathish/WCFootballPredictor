@@ -290,7 +290,8 @@ create policy predictions_read on public.predictions for select using (
   or exists (
     select 1 from public.matches m
     where m.id = match_id
-      and (m.status = 'finished' or (m.kickoff is not null and m.kickoff <= now()))
+      -- others revealed once predictions close (1h before kickoff) or match finished
+      and (m.status = 'finished' or (m.kickoff is not null and now() >= m.kickoff - interval '1 hour'))
   )
 );
 --  write: only your own, and only before kickoff while scheduled.
@@ -305,7 +306,7 @@ create policy predictions_write on public.predictions for all
         and m.status = 'scheduled'
         and m.kickoff is not null
         and now() >= m.kickoff - interval '24 hours'  -- window opens 24h before kickoff
-        and now() <  m.kickoff                         -- and closes at kickoff
+        and now() <  m.kickoff - interval '1 hour'     -- and closes 1h before kickoff
     )
   );
 --  admins can read & edit anyone's predictions, any time (overview/correction tool).

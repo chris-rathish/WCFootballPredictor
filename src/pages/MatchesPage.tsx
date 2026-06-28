@@ -50,8 +50,8 @@ export default function MatchesPage() {
         <h1 className="mb-1 text-xl font-bold">Open for Predictions</h1>
         <p className="mb-3 text-sm text-zinc-400">
           {open.length === 0
-            ? 'Nothing open right now — predictions open 24 hours before each kickoff.'
-            : 'Enter your scoreline and Man of the Match. Locks at kickoff.'}
+            ? 'Nothing open right now — predictions run from 24 hours until 1 hour before each kickoff.'
+            : 'Enter your scoreline and Man of the Match. Locks 1 hour before kickoff.'}
         </p>
         {open.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
