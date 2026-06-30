@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { hasStarted, type Match, type Prediction } from '../lib/types'
 import MatchCard from '../components/MatchCard'
+import GroupMatchArchive from '../components/GroupMatchArchive'
 
 export default function HistoryPage() {
   const { session } = useAuth()
@@ -64,9 +65,9 @@ export default function HistoryPage() {
         )}
       </section>
 
-      {/* Completed */}
+      {/* Completed (knockout, in-app) */}
       <section>
-        <h2 className="mb-1 text-lg font-semibold">✅ Completed</h2>
+        <h2 className="mb-1 text-lg font-semibold">✅ Completed (knockout)</h2>
         <p className="mb-3 text-sm text-zinc-400">Final results with everyone’s picks and points.</p>
         {completed.length === 0 ? (
           <div className="card text-sm text-zinc-500">No matches completed yet.</div>
@@ -77,6 +78,13 @@ export default function HistoryPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Group stage day-by-day archive (everyone's predictions) */}
+      <section>
+        <h2 className="mb-1 text-lg font-semibold">⚽ Group Stage — day by day</h2>
+        <p className="mb-3 text-sm text-zinc-400">Every group match — tap a game to see everyone’s score, winner, MOTM and points.</p>
+        <GroupMatchArchive />
       </section>
     </div>
   )
