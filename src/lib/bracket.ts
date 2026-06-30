@@ -1,4 +1,61 @@
-import type { BracketPicks, R32Matchup } from './types'
+import type { BracketPicks, Match, R32Matchup, Settings } from './types'
+
+// ----- Actual results derived from finished knockout matches (by stage) -----
+// Each round's "advancers" = winners of that round's matches:
+//   R16 advancers = winners of R32 games, QF = winners of R16, etc.
+function winnersOf(matches: Match[], stage: string): string[] {
+  return matches
+    .filter((m) => m.stage === stage && m.status === 'finished' && m.winner)
+    .map((m) => m.winner as string)
+}
+function losersOf(matches: Match[], stage: string): string[] {
+  return matches
+    .filter((m) => m.stage === stage && m.status === 'finished' && m.winner)
+    .map((m) => (m.winner === m.home_team ? m.away_team : m.home_team))
+}
+
+export function actualFromMatches(matches: Match[]): BracketPicks {
+  return {
+    R16: winnersOf(matches, 'R32'),
+    QF: winnersOf(matches, 'R16'),
+    SF: winnersOf(matches, 'QF'),
+    FINAL: winnersOf(matches, 'SF'),
+    CHAMPION: winnersOf(matches, 'FINAL')[0],
+    THIRD: winnersOf(matches, '3RD')[0],
+  }
+}
+
+// teams that have been knocked out at each round (lost their game) — for red marks
+export function eliminatedFromMatches(matches: Match[]): BracketPicks {
+  return {
+    R16: losersOf(matches, 'R32'),
+    QF: losersOf(matches, 'R16'),
+    SF: losersOf(matches, 'QF'),
+    FINAL: losersOf(matches, 'SF'),
+    CHAMPION: losersOf(matches, 'FINAL')[0],
+    THIRD: losersOf(matches, '3RD')[0],
+  }
+}
+
+type BracketPts = Pick<Settings, 'pts_r16' | 'pts_qf' | 'pts_sf' | 'pts_final' | 'pts_champion' | 'pts_third'>
+
+// Score a bracket against the actual results (mirrors recompute_brackets in SQL).
+export function scoreBracket(picks: BracketPicks, actual: BracketPicks, pts: BracketPts): number {
+  let total = 0
+  const round = (key: 'R16' | 'QF' | 'SF' | 'FINAL', val: number) => {
+    const actualList = (actual[key] as string[] | undefined) ?? []
+    for (const t of (picks[key] as string[] | undefined) ?? []) {
+      if (t && actualList.includes(t)) total += val
+    }
+  }
+  round('R16', pts.pts_r16)
+  round('QF', pts.pts_qf)
+  round('SF', pts.pts_sf)
+  round('FINAL', pts.pts_final)
+  if (actual.CHAMPION && picks.CHAMPION === actual.CHAMPION) total += pts.pts_champion
+  if (actual.THIRD && picks.THIRD === actual.THIRD) total += pts.pts_third
+  return total
+}
 
 // Given the 16 R32 matchups and a set of chosen winners per round, derive the
 // matchups for the next round. Picks are stored as flat arrays of team names.

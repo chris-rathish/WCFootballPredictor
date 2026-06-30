@@ -7,7 +7,8 @@ interface Props {
   picks: BracketPicks
   editable: boolean
   onChange: (next: BracketPicks) => void
-  actual?: BracketPicks // when set, highlight correct/incorrect picks
+  actual?: BracketPicks // teams that actually advanced — correct picks turn green
+  eliminated?: BracketPicks // teams that lost — wrong picks turn red (undecided stay neutral)
 }
 
 // A column = one round, restricted to a slice of game indices (left or right half).
@@ -29,7 +30,7 @@ const RIGHT: Col[] = [
   { round: 'R16', indices: [8, 9, 10, 11, 12, 13, 14, 15] },
 ]
 
-export default function Bracket({ r32, picks, editable, onChange, actual }: Props) {
+export default function Bracket({ r32, picks, editable, onChange, actual, eliminated }: Props) {
   if (!r32 || r32.length === 0) {
     return (
       <div className="card text-zinc-400">
@@ -46,11 +47,24 @@ export default function Bracket({ r32, picks, editable, onChange, actual }: Prop
     onChange(pruneDownstream(r32, { ...picks, [round]: arr }))
   }
 
+  // true = correct (green), false = wrong/eliminated (red), undefined = undecided (neutral)
   const isCorrect = (round: keyof BracketPicks, team: string): boolean | undefined => {
     if (!actual || !team) return undefined
-    if (round === 'CHAMPION') return actual.CHAMPION === team
-    if (round === 'THIRD') return actual.THIRD === team
-    return ((actual[round] as string[] | undefined) ?? []).includes(team)
+    const inActual =
+      round === 'CHAMPION'
+        ? actual.CHAMPION === team
+        : round === 'THIRD'
+        ? actual.THIRD === team
+        : ((actual[round] as string[] | undefined) ?? []).includes(team)
+    if (inActual) return true
+    if (!eliminated) return undefined
+    const isOut =
+      round === 'CHAMPION'
+        ? eliminated.CHAMPION === team
+        : round === 'THIRD'
+        ? eliminated.THIRD === team
+        : ((eliminated[round] as string[] | undefined) ?? []).includes(team)
+    return isOut ? false : undefined
   }
 
   function teamCls(selected: boolean, correct?: boolean, gold = false): string {
