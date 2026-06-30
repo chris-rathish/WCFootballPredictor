@@ -34,6 +34,7 @@ export default function PlayerPage() {
   const [matches, setMatches] = useState<Match[]>([])
   const [preds, setPreds] = useState<Record<number, Prediction>>({})
   const [loading, setLoading] = useState(true)
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc') // latest first by default
 
   useEffect(() => {
     async function load() {
@@ -205,7 +206,18 @@ export default function PlayerPage() {
       </div>
 
       <div>
-        <h2 className="mb-2 text-lg font-semibold">Predictions</h2>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Predictions</h2>
+          {predRows.length > 0 && (
+            <button
+              className="btn-ghost px-3 py-1 text-sm"
+              onClick={() => setOrder((o) => (o === 'desc' ? 'asc' : 'desc'))}
+              title="Toggle order"
+            >
+              {order === 'desc' ? 'Latest first ▼' : 'Earliest first ▲'}
+            </button>
+          )}
+        </div>
         {predRows.length === 0 ? (
           <div className="card text-sm text-zinc-500">No scored predictions yet.</div>
         ) : (
@@ -222,7 +234,7 @@ export default function PlayerPage() {
                 </tr>
               </thead>
               <tbody>
-                {predRows.map((r) => {
+                {(order === 'desc' ? [...predRows].reverse() : predRows).map((r) => {
                   const motmHit =
                     !!r.pmotm && !!r.amotm && r.pmotm.trim().toLowerCase() === r.amotm.trim().toLowerCase()
                   return (
