@@ -43,6 +43,10 @@ export default function MotmInput({ home, away, value, onChange, placeholder = '
         className={className}
         value={value}
         placeholder={placeholder}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        name={`motm-${home}-${away}`}
         onFocus={() => {
           setOpen(true)
           setTyped(false)
