@@ -4,6 +4,7 @@ export interface Profile {
   id: string
   display_name: string
   is_admin: boolean
+  claimed?: boolean // has the player logged in and claimed this name?
   // admin-managed point buckets (carry-over / special predictions)
   gs_match_pts?: number
   gs_pred_pts?: number

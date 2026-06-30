@@ -39,7 +39,7 @@ function Players() {
   async function load() {
     const { data } = await supabase
       .from('profiles')
-      .select('id, display_name, is_admin, gs_match_pts, gs_pred_pts, tourney_pts, perfect_pts')
+      .select('id, display_name, is_admin, claimed, gs_match_pts, gs_pred_pts, tourney_pts, perfect_pts')
       .order('display_name')
     setRows((data as Profile[]) ?? [])
   }
@@ -68,8 +68,16 @@ function Players() {
     />
   )
 
+  const registered = rows.filter((p) => p.claimed).length
+
   return (
     <div className="card space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="pill bg-emerald-500/20 text-emerald-300">
+          {registered} / {rows.length} registered
+        </span>
+        <span className="text-xs text-zinc-500">“Registered” = has logged in and claimed their name.</span>
+      </div>
       <p className="text-sm text-zinc-400">
         Manage names, admin rights, and the manual point buckets. Knockout match points and the knockout
         bracket are calculated automatically — these fields are for group-stage carry-over and tournament-wide predictions.
@@ -78,6 +86,7 @@ function Players() {
         <table className="w-full text-sm">
           <thead className="text-left text-zinc-400">
             <tr>
+              <th className="py-1 pr-3 text-center">Registered</th>
               <th className="py-1 pr-3">Name</th>
               <th className="py-1 pr-3">Group Stage Matches</th>
               <th className="py-1 pr-3">Group Stage Prediction</th>
@@ -89,6 +98,13 @@ function Players() {
           <tbody>
             {rows.map((p) => (
               <tr key={p.id} className="border-t border-zinc-700/40">
+                <td className="py-2 pr-3 text-center">
+                  {p.claimed ? (
+                    <span className="text-emerald-400" title="Logged in">✓</span>
+                  ) : (
+                    <span className="text-zinc-600" title="Not yet logged in">—</span>
+                  )}
+                </td>
                 <td className="py-2 pr-3">
                   <input
                     className="input max-w-[10rem]"
