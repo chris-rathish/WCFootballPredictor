@@ -19,7 +19,10 @@ const COLS: { key: keyof LeaderboardRow; label: string }[] = [
 ]
 
 type SortKey = keyof LeaderboardRow
-const SNAP_KEY = 'wc-rank-snapshot-v1'
+const SNAP_KEY = 'wc-rank-snapshot-v2'
+// snapshot is re-baselined only when a new match finishes, so the ▲▼ arrows
+// reflect "movement since the last results came in" and survive idle refreshes.
+type Snap = { finished: number; ranks: Record<string, number>; moves: Record<string, number> }
 
 export default function StandingsPage() {
   const { session } = useAuth()
@@ -36,21 +39,34 @@ export default function StandingsPage() {
       supabase.from('matches').select('*'),
       supabase.from('predictions').select('match_id, home_score, away_score, winner, motm'),
     ])
+    const matches = (m as Match[]) ?? []
     const real = ((lb as LeaderboardRow[]) ?? []).filter((r) => r.display_name !== AVERAGE_NAME)
-    const avg = computeAverageRow((m as Match[]) ?? [], (preds as any[]) ?? [])
+    const avg = computeAverageRow(matches, (preds as any[]) ?? [])
     setRows(real)
     setAverage(avg)
 
-    // rank movement since the viewer last looked (by total points, desc)
+    // current ranking (by total points, desc)
     const ranked = [...real, avg].sort((a, b) => b.total_points - a.total_points)
     const current: Record<string, number> = {}
     ranked.forEach((r, i) => (current[r.user_id] = i + 1))
+    const finished = matches.filter((mm) => mm.status === 'finished').length
+
     try {
-      const prev = JSON.parse(localStorage.getItem(SNAP_KEY) || '{}') as Record<string, number>
-      const mv: Record<string, number> = {}
-      for (const uid in current) if (prev[uid]) mv[uid] = prev[uid] - current[uid] // +up, -down
-      setMoves(mv)
-      localStorage.setItem(SNAP_KEY, JSON.stringify(current))
+      const prev = JSON.parse(localStorage.getItem(SNAP_KEY) || 'null') as Snap | null
+      if (!prev) {
+        // first visit — baseline now, nothing to show yet
+        localStorage.setItem(SNAP_KEY, JSON.stringify({ finished, ranks: current, moves: {} } as Snap))
+        setMoves({})
+      } else if (finished > prev.finished) {
+        // new result(s) landed — compute movement from the prior baseline and re-baseline
+        const mv: Record<string, number> = {}
+        for (const uid in current) if (prev.ranks[uid]) mv[uid] = prev.ranks[uid] - current[uid] // +up, -down
+        localStorage.setItem(SNAP_KEY, JSON.stringify({ finished, ranks: current, moves: mv } as Snap))
+        setMoves(mv)
+      } else {
+        // no new results — keep showing the last computed movement (don't reset on idle refresh)
+        setMoves(prev.moves ?? {})
+      }
     } catch {
       /* ignore */
     }
