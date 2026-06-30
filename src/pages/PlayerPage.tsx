@@ -2,8 +2,31 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { isKnockout, outcomeLabel, type LeaderboardRow, type Match, type Prediction } from '../lib/types'
+import { GROUP_MATCH_PREDS } from '../data/groupMatchPreds'
 import Team from '../components/Team'
 import { SkeletonRows } from '../components/Skeleton'
+
+// Group-stage matches aren't in the DB (only carry-over point buckets are) — their
+// per-match picks live in the static archive. Count a player's group exact scores,
+// MOTM hits and perfects from there so the profile reflects the whole tournament.
+function groupStatsFor(name: string) {
+  let exact = 0,
+    motmHits = 0,
+    perfect = 0,
+    predicted = 0
+  for (const day of GROUP_MATCH_PREDS) {
+    for (const g of day.games) {
+      if (g.hs == null || g.as == null) continue // game not played
+      const pl = g.players.find((p) => p.name === name)
+      if (!pl || pl.hs == null || pl.as == null) continue // player didn't predict
+      predicted++
+      if (pl.hs === g.hs && pl.as === g.as) exact++
+      if (g.motm && pl.motm && g.motm.trim().toLowerCase() === pl.motm.trim().toLowerCase()) motmHits++
+      if (pl.pts === 20) perfect++
+    }
+  }
+  return { exact, motmHits, perfect, predicted }
+}
 
 export default function PlayerPage() {
   const { id } = useParams<{ id: string }>()
@@ -38,6 +61,7 @@ export default function PlayerPage() {
       winnerHits = 0,
       koWinners = 0,
       predicted = 0
+    // knockout (live, from the DB)
     for (const m of finished) {
       const p = preds[m.id]
       if (!p) continue
@@ -50,8 +74,17 @@ export default function PlayerPage() {
         if (m.winner && p.winner && p.winner === m.winner) winnerHits++
       }
     }
-    return { exact, perfect, motmHits, winnerHits, koWinners, predicted }
-  }, [finished, preds])
+    // group stage (from the static archive)
+    const g = row ? groupStatsFor(row.display_name) : { exact: 0, motmHits: 0, perfect: 0, predicted: 0 }
+    return {
+      exact: exact + g.exact,
+      perfect: perfect + g.perfect,
+      motmHits: motmHits + g.motmHits,
+      winnerHits,
+      koWinners,
+      predicted: predicted + g.predicted,
+    }
+  }, [finished, preds, row])
 
   const badges: { icon: string; label: string }[] = []
   if (stats.perfect > 0) badges.push({ icon: '🎯', label: `${stats.perfect} perfect prediction${stats.perfect > 1 ? 's' : ''}` })
