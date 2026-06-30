@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { hasStarted, isKnockout, isPredictable, outcomeLabel, type Match, type Prediction } from '../lib/types'
+import { hasStarted, isKnockout, isPredictable, outcomeLabel, predictionClosesAt, type Match, type Prediction } from '../lib/types'
 import { scorePrediction } from '../lib/scoring'
 import Team from './Team'
 import MotmInput from './MotmInput'
@@ -10,6 +10,31 @@ interface Props {
   match: Match
   myPrediction: Prediction | null
   onSaved: () => void
+}
+
+function fmtRemaining(ms: number): string {
+  const s = Math.max(0, Math.floor(ms / 1000))
+  const d = Math.floor(s / 86400)
+  const h = Math.floor((s % 86400) / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (d > 0) return `${d}d ${h}h ${m}m`
+  if (h > 0) return `${h}h ${m}m ${sec}s`
+  return `${m}m ${sec}s`
+}
+
+function Countdown({ target, prefix, className }: { target: number; prefix: string; className?: string }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  if (target - now <= 0) return null
+  return (
+    <span className={className}>
+      {prefix} <span className="font-semibold tabular-nums">{fmtRemaining(target - now)}</span>
+    </span>
+  )
 }
 
 interface OtherPred {
@@ -169,6 +194,23 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
             </>
           )}
           {match.motm && <> · MOTM: {match.motm}</>}
+        </div>
+      )}
+
+      {/* Live countdown */}
+      {!finished && match.kickoff && (
+        <div className="mt-1 text-center text-xs">
+          {predictable ? (
+            <Countdown
+              target={predictionClosesAt(match)!.getTime()}
+              prefix="🔒 Predictions lock in"
+              className="text-amber-300"
+            />
+          ) : Date.now() < new Date(match.kickoff).getTime() ? (
+            <Countdown target={new Date(match.kickoff).getTime()} prefix="⚽ Kicks off in" className="text-zinc-400" />
+          ) : (
+            <span className="text-zinc-500">⏱ In progress — awaiting result</span>
+          )}
         </div>
       )}
 
