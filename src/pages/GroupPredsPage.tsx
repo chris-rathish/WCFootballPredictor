@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { GROUP_PREDS } from '../data/groupPreds'
+import Team from '../components/Team'
 
 export default function GroupPredsPage() {
   const [g, setG] = useState(GROUP_PREDS[0]?.group ?? 'A')
@@ -32,9 +33,9 @@ export default function GroupPredsPage() {
         <div className="mb-2 text-sm font-semibold text-zinc-300">Group {group.group} — actual result</div>
         <ol className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-4">
           {group.actual.map((t, i) => (
-            <li key={i} className="rounded bg-emerald-500/15 px-2 py-1 text-emerald-200">
-              <span className="mr-1 text-xs text-zinc-400">{i + 1}.</span>
-              {t}
+            <li key={i} className="flex items-center gap-1.5 rounded bg-emerald-500/15 px-2 py-1 text-emerald-200">
+              <span className="text-xs text-zinc-400">{i + 1}.</span>
+              <Team name={t} height={12} />
             </li>
           ))}
         </ol>
@@ -61,7 +62,7 @@ export default function GroupPredsPage() {
                     key={i}
                     className={`px-3 py-2 ${t && t === group.actual[i] ? 'bg-emerald-500/15 text-emerald-200' : 'text-zinc-300'}`}
                   >
-                    {t || '—'}
+                    {t ? <Team name={t} height={11} /> : '—'}
                   </td>
                 ))}
                 <td className="px-3 py-2 text-right font-semibold tabular-nums">{p.points}</td>

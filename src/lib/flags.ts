@@ -75,6 +75,28 @@ export const FLAG_CODES: Record<string, string> = {
   Egypt: 'eg',
   Argentina: 'ar',
   'Cape Verde': 'cv',
+  // group-stage-only teams (and name variants used in the archives)
+  'South Korea': 'kr',
+  Czechia: 'cz',
+  Qatar: 'qa',
+  Haiti: 'ht',
+  Scotland: 'gb-sct',
+  Türkiye: 'tr',
+  Turkiye: 'tr',
+  Curaçao: 'cw',
+  Curacao: 'cw',
+  Tunisia: 'tn',
+  'Saudi Arabia': 'sa',
+  Uruguay: 'uy',
+  Iran: 'ir',
+  'New Zealand': 'nz',
+  Iraq: 'iq',
+  Jordan: 'jo',
+  Panama: 'pa',
+  Uzbekistan: 'uz',
+  Columbia: 'co',
+  "Côte d'Ivoire": 'ci',
+  "Cote d'Ivoire": 'ci',
 }
 
 export function flagUrl(name: string, height = 18): { src: string; srcSet: string } | null {
