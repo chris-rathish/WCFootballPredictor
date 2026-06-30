@@ -72,7 +72,7 @@ export default function StandingsPage() {
     return (
       <tr key={r.user_id} className={`border-t border-zinc-700/40 ${rowBg} ${isAvg ? 'italic' : ''}`}>
         <td className={`sticky left-0 z-10 px-3 py-2 ${stickyBg}`}>{rank}</td>
-        <td className={`sticky left-10 z-10 px-3 py-2 font-semibold ${stickyBg} ${me ? 'text-red-200' : isAvg ? 'text-amber-200' : ''}`}>
+        <td className={`sticky left-10 z-10 whitespace-nowrap px-3 py-2 font-semibold ${stickyBg} ${me ? 'text-red-200' : isAvg ? 'text-amber-200' : ''}`}>
           {r.display_name}
           {isAvg && <span className="ml-1 pill bg-amber-500/20 text-amber-300">consensus</span>}
         </td>
