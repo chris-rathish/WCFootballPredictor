@@ -26,7 +26,9 @@ export default function MatchdayWinners() {
       ;((m as Match[]) ?? []).forEach((mt) => {
         if (!mt.kickoff) return
         const dt = new Date(mt.kickoff)
-        const k = dt.toISOString().slice(0, 10)
+        // local-date key (yyyy-mm-dd) so it matches the local display label —
+        // toISOString() is UTC and would split a single matchday across midnight.
+        const k = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
         matchKey[mt.id] = k
         label[k] = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
       })
