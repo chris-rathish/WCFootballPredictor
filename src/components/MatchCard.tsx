@@ -175,6 +175,9 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
             match.grp && <span className="pill bg-zinc-600/40">Group {match.grp}</span>
           )}{' '}
           {match.label}
+          {predictable && !myPrediction && (
+            <span className="ml-1 pill bg-red-500/20 text-red-300">not predicted</span>
+          )}
         </span>
         <span>{kickoffStr}</span>
       </div>
