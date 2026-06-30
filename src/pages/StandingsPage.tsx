@@ -6,6 +6,7 @@ import type { LeaderboardRow, Match } from '../lib/types'
 import { AVERAGE_NAME, AVERAGE_USER_ID, computeAverageRow } from '../lib/average'
 import { useAutoRefresh } from '../lib/useAutoRefresh'
 import { SkeletonRows } from '../components/Skeleton'
+import MatchdayWinners from '../components/MatchdayWinners'
 
 const COLS: { key: keyof LeaderboardRow; label: string }[] = [
   { key: 'total_points', label: 'Total' },
@@ -162,6 +163,7 @@ export default function StandingsPage() {
         Match points are calculated automatically. <span className="text-amber-300">Average</span> is the group’s
         consensus — each match it uses the most common score, winner and MOTM everyone picked, then is scored like a player.
       </p>
+      {!loading && <MatchdayWinners />}
     </div>
   )
 }

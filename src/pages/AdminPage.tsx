@@ -52,6 +52,30 @@ function Players() {
     load()
   }
 
+  // duplicate display names (e.g. someone used "Add yourself" instead of claiming)
+  const byName: Record<string, Profile[]> = {}
+  rows.forEach((r) => ((byName[r.display_name] ??= []).push(r)))
+  const dups = Object.entries(byName).filter(([, arr]) => arr.length > 1)
+
+  async function mergeGroup(arr: Profile[]) {
+    // keep the registered one, else the one with the most carry-over points
+    const keep =
+      arr.find((x) => x.claimed) ??
+      [...arr].sort(
+        (a, b) => (b.gs_match_pts ?? 0) + (b.gs_pred_pts ?? 0) - ((a.gs_match_pts ?? 0) + (a.gs_pred_pts ?? 0))
+      )[0]
+    const remove = arr.filter((x) => x.id !== keep.id)
+    if (!confirm(`Merge ${arr.length} "${keep.display_name}" profiles into one? The extras are removed.`)) return
+    for (const r of remove) {
+      const { error } = await supabase.rpc('merge_profiles', { keep: keep.id, remove: r.id })
+      if (error) {
+        alert(error.message)
+        return
+      }
+    }
+    load()
+  }
+
   const numField = (
     id: string,
     key: 'gs_match_pts' | 'gs_pred_pts' | 'tourney_pts' | 'perfect_pts',
@@ -72,6 +96,25 @@ function Players() {
 
   return (
     <div className="card space-y-3">
+      {dups.length > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <div className="mb-1 font-semibold text-amber-200">⚠ Duplicate players</div>
+          <div className="space-y-1">
+            {dups.map(([name, arr]) => (
+              <div key={name} className="flex items-center gap-2">
+                <span className="font-medium">{name}</span>
+                <span className="text-xs text-zinc-400">
+                  ({arr.length} profiles — {arr.filter((x) => x.claimed).length} registered)
+                </span>
+                <button className="btn-primary ml-auto px-3 py-1" onClick={() => mergeGroup(arr)}>
+                  Merge
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <span className="pill bg-emerald-500/20 text-emerald-300">
           {registered} / {rows.length} registered

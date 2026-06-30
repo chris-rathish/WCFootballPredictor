@@ -54,6 +54,51 @@ export default function AdminMatches() {
     load()
   }
 
+  // ---- auto-generate the next knockout round from finished results ----
+  const labelNum = (l: string | null) => parseInt((l ?? '').match(/\d+/)?.[0] ?? '0', 10)
+  const loserOf = (m: Match) => (m.winner === m.home_team ? m.away_team : m.home_team)
+
+  async function generateNextRound() {
+    const order: { from: Stage; to: Stage }[] = [
+      { from: 'R32', to: 'R16' },
+      { from: 'R16', to: 'QF' },
+      { from: 'QF', to: 'SF' },
+      { from: 'SF', to: 'FINAL' },
+    ]
+    for (const { from, to } of order) {
+      const cur = matches.filter((m) => m.stage === from).sort((a, b) => labelNum(a.label) - labelNum(b.label))
+      if (cur.length === 0) continue
+      const allDone = cur.every((m) => m.status === 'finished' && m.winner)
+      const nextExists = matches.some((m) => m.stage === to)
+      if (!allDone || nextExists) continue
+
+      const newMatches: any[] = []
+      if (to === 'FINAL') {
+        // final + 3rd place from the two semis
+        const [s1, s2] = cur
+        newMatches.push({ stage: 'FINAL', label: 'FINAL', home_team: s1.winner, away_team: s2.winner })
+        newMatches.push({ stage: '3RD', label: '3RD', home_team: loserOf(s1), away_team: loserOf(s2) })
+      } else {
+        for (let i = 0; i < cur.length; i += 2) {
+          newMatches.push({
+            stage: to,
+            label: `${to}-${i / 2 + 1}`,
+            home_team: cur[i].winner,
+            away_team: cur[i + 1]?.winner ?? 'TBD',
+          })
+        }
+      }
+      const { error } = await supabase.from('matches').insert(newMatches)
+      if (error) alert(error.message)
+      else {
+        alert(`Created ${newMatches.length} ${to} fixture(s). Set their kickoff times below.`)
+        load()
+      }
+      return
+    }
+    alert('Nothing to generate — the current round isn’t fully finished, or the next round already exists.')
+  }
+
   // team autofill = known WC teams ∪ teams already used in matches
   const teamOptions = Array.from(
     new Set([...TEAM_NAMES, ...matches.flatMap((m) => [m.home_team, m.away_team])])
@@ -74,9 +119,12 @@ export default function AdminMatches() {
 
       {/* ============ STEP 1: upload the day's fixtures ============ */}
       <section>
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="pill bg-red-600 text-white">1</span>
           <h3 className="text-lg font-semibold">Add the match(es) of the day</h3>
+          <button className="btn-ghost ml-auto px-3 py-1 text-sm" onClick={generateNextRound} title="Pair the winners of the last completed round into the next round">
+            ✨ Generate next round
+          </button>
         </div>
         <p className="mb-3 text-sm text-zinc-400">Create fixtures so players can predict them. Set the kickoff — predictions auto-lock then.</p>
         <form onSubmit={addMatch} className="card grid gap-3 md:grid-cols-3">
