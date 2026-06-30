@@ -143,7 +143,8 @@ export default function StandingsPage() {
   return (
     <div>
       <h1 className="mb-1 text-xl font-bold">Leaderboard</h1>
-      <p className="mb-4 text-xs text-zinc-500">Click a name for their profile · click a column header to sort · ▲▼ shows movement since your last visit.</p>
+      <p className="mb-4 text-xs text-zinc-500">Click a name for their profile · click a column header to sort · ▲▼ shows movement since the last results.</p>
+      {!loading && <MatchdayWinners />}
       {loading ? (
         <SkeletonRows rows={10} />
       ) : (
@@ -179,7 +180,6 @@ export default function StandingsPage() {
         Match points are calculated automatically. <span className="text-amber-300">Average</span> is the group’s
         consensus — each match it uses the most common score, winner and MOTM everyone picked, then is scored like a player.
       </p>
-      {!loading && <MatchdayWinners />}
     </div>
   )
 }

@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase'
 import type { Match } from '../lib/types'
 
 interface Day {
-  date: string
+  key: string // yyyy-mm-dd for sorting
+  date: string // display label
   top: { name: string; pts: number }[]
 }
 
@@ -19,26 +20,34 @@ export default function MatchdayWinners() {
       ])
       const names: Record<string, string> = {}
       ;(profs as any[] ?? []).forEach((r) => (names[r.id] = r.display_name))
-      const matchDate: Record<number, string> = {}
+      // map each match to a sortable day key (yyyy-mm-dd) + display label
+      const matchKey: Record<number, string> = {}
+      const label: Record<string, string> = {}
       ;((m as Match[]) ?? []).forEach((mt) => {
-        if (mt.kickoff) matchDate[mt.id] = new Date(mt.kickoff).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        if (!mt.kickoff) return
+        const dt = new Date(mt.kickoff)
+        const k = dt.toISOString().slice(0, 10)
+        matchKey[mt.id] = k
+        label[k] = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
       })
-      // sum points per (date, user)
+      // sum points per (day, user)
       const byDate: Record<string, Record<string, number>> = {}
       ;(p as any[] ?? []).forEach((pr) => {
-        const d = matchDate[pr.match_id]
-        if (!d) return
-        ;(byDate[d] ??= {})[pr.user_id] = (byDate[d][pr.user_id] ?? 0) + (pr.points ?? 0)
+        const k = matchKey[pr.match_id]
+        if (!k) return
+        ;(byDate[k] ??= {})[pr.user_id] = (byDate[k][pr.user_id] ?? 0) + (pr.points ?? 0)
       })
       const out: Day[] = Object.entries(byDate)
-        .map(([date, users]) => {
+        .map(([key, users]) => {
           const max = Math.max(...Object.values(users))
           const top = Object.entries(users)
             .filter(([, v]) => v === max && max > 0)
             .map(([uid, v]) => ({ name: names[uid] ?? '—', pts: v }))
-          return { date, top }
+          return { key, date: label[key] ?? key, top }
         })
         .filter((d) => d.top.length > 0)
+        .sort((a, b) => b.key.localeCompare(a.key)) // most recent first
+        .slice(0, 2) // only the last 2 matchdays
       setDays(out)
     }
     load()
@@ -47,11 +56,11 @@ export default function MatchdayWinners() {
   if (days.length === 0) return null
 
   return (
-    <div className="mt-6">
+    <div className="mb-6">
       <h2 className="mb-2 text-lg font-semibold">🏅 Matchday winners</h2>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2">
         {days.map((d) => (
-          <div key={d.date} className="card flex items-center justify-between py-2 text-sm">
+          <div key={d.key} className="card flex items-center justify-between py-2 text-sm">
             <span className="text-zinc-400">{d.date}</span>
             <span className="font-medium">
               {d.top.map((t) => t.name).join(', ')} <span className="text-emerald-300">({d.top[0].pts})</span>
