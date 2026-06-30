@@ -68,11 +68,12 @@ export default function Bracket({ r32, picks, editable, onChange, actual, elimin
   }
 
   function teamCls(selected: boolean, correct?: boolean, gold = false): string {
-    let cls = 'bg-zinc-900/70 text-zinc-200 hover:bg-zinc-700'
-    if (selected) cls = gold ? 'bg-amber-400 text-night font-semibold' : 'bg-red-500 text-night font-semibold'
-    if (selected && correct === true) cls = `${gold ? 'bg-amber-300' : 'bg-red-400'} text-night font-semibold ring-2 ring-white/60`
-    if (selected && correct === false) cls = 'bg-red-500/80 text-white font-semibold'
-    return cls
+    if (!selected) return 'bg-zinc-900/70 text-zinc-300 hover:bg-zinc-700'
+    // graded: mint green = correct, red = wrong
+    if (correct === true) return 'bg-emerald-300 text-zinc-900 font-semibold'
+    if (correct === false) return 'bg-red-500 text-white font-semibold'
+    // selected, not yet decided (or still picking) — neutral highlight, never red
+    return gold ? 'bg-amber-400 text-zinc-900 font-semibold' : 'bg-zinc-600 text-zinc-50 font-semibold'
   }
 
   function TeamBtn({
