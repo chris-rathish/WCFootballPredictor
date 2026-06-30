@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import { COLUMN_LABELS, gamesForRound, pruneDownstream, semiFinalLosers, type AdvancingRound } from '../lib/bracket'
 import Team from './Team'
 import type { BracketPicks, R32Matchup } from '../lib/types'
@@ -31,6 +32,73 @@ const RIGHT: Col[] = [
 ]
 
 export default function Bracket({ r32, picks, editable, onChange, actual, eliminated }: Props) {
+  const cardRefs = useRef<Record<string, HTMLElement | null>>({})
+  const innerRef = useRef<HTMLDivElement>(null)
+  const centerRef = useRef<HTMLDivElement>(null)
+  const [segs, setSegs] = useState<number[][]>([])
+  const [size, setSize] = useState({ w: 0, h: 0 })
+
+  useLayoutEffect(() => {
+    function point(key: string, edge: 'L' | 'R') {
+      const el = cardRefs.current[key]
+      const inner = innerRef.current
+      if (!el || !inner) return null
+      const r = el.getBoundingClientRect()
+      const ir = inner.getBoundingClientRect()
+      return { x: edge === 'L' ? r.left - ir.left : r.right - ir.left, y: r.top - ir.top + r.height / 2 }
+    }
+    function compute() {
+      const inner = innerRef.current
+      if (!inner) return
+      const out: number[][] = []
+      const elbow = (a: any, b: any, t: any) => {
+        if (!a || !b || !t) return
+        const xm = (a.x + t.x) / 2
+        out.push([a.x, a.y, xm, a.y], [b.x, b.y, xm, b.y], [xm, a.y, xm, b.y], [xm, t.y, t.x, t.y])
+      }
+      const single = (a: any, t: any) => {
+        if (!a || !t) return
+        const xm = (a.x + t.x) / 2
+        out.push([a.x, a.y, xm, a.y], [xm, a.y, xm, t.y], [xm, t.y, t.x, t.y])
+      }
+      for (const s of ['L', 'R'] as const) {
+        const srcEdge = s === 'L' ? 'R' : 'L'
+        const tgtEdge = s === 'L' ? 'L' : 'R'
+        for (let d = 0; d < 3; d++) {
+          const nextCount = 8 >> (d + 1)
+          for (let j = 0; j < nextCount; j++) {
+            elbow(
+              point(`${s}:${d}:${2 * j}`, srcEdge),
+              point(`${s}:${d}:${2 * j + 1}`, srcEdge),
+              point(`${s}:${d + 1}:${j}`, tgtEdge)
+            )
+          }
+        }
+        // innermost semi card -> centre final
+        const sp = point(`${s}:3:0`, srcEdge)
+        const center = centerRef.current
+        if (sp && center) {
+          const ir = innerRef.current!.getBoundingClientRect()
+          const cr = center.getBoundingClientRect()
+          const cx = s === 'L' ? cr.left - ir.left : cr.right - ir.left
+          single(sp, { x: cx, y: cr.top - ir.top + cr.height / 2 })
+        }
+      }
+      setSegs(out)
+      setSize({ w: inner.scrollWidth, h: inner.scrollHeight })
+    }
+    compute()
+    const ro = new ResizeObserver(() => compute())
+    if (innerRef.current) ro.observe(innerRef.current)
+    window.addEventListener('resize', compute)
+    const t = setTimeout(compute, 200)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', compute)
+      clearTimeout(t)
+    }
+  }, [r32, picks, actual, editable])
+
   if (!r32 || r32.length === 0) {
     return (
       <div className="card text-zinc-400">
@@ -104,20 +172,21 @@ export default function Bracket({ r32, picks, editable, onChange, actual, elimin
     )
   }
 
-  function Column({ col, side }: { col: Col; side: 'left' | 'right' }) {
+  function Column({ col, side, depth }: { col: Col; side: 'left' | 'right'; depth: number }) {
     const games = gamesForRound(r32, picks, col.round)
     const sel = (picks[col.round] as string[] | undefined) ?? []
+    const sc = side === 'left' ? 'L' : 'R'
     return (
-      <div className="flex min-w-[150px] flex-1 flex-col">
+      <div className="relative z-10 flex min-w-[150px] flex-1 flex-col">
         <h3 className="mb-2 text-center text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
           {COLUMN_LABELS[col.round]}
         </h3>
         <div className="flex h-full flex-col justify-around gap-2">
-          {col.indices.map((i) => {
+          {col.indices.map((i, cardIdx) => {
             const g = games[i]
             if (!g) return null
             return (
-              <div key={i} className="card space-y-1 p-1.5">
+              <div key={i} ref={(el) => (cardRefs.current[`${sc}:${depth}:${cardIdx}`] = el)} className="card space-y-1 p-1.5">
                 <TeamBtn round={col.round} gameIndex={i} team={g.home} selected={!!g.home && sel[i] === g.home} align={side} />
                 <TeamBtn round={col.round} gameIndex={i} team={g.away} selected={!!g.away && sel[i] === g.away} align={side} />
               </div>
@@ -140,9 +209,9 @@ export default function Bracket({ r32, picks, editable, onChange, actual, elimin
   }
 
   const Center = (
-    <div className="flex min-w-[200px] flex-col items-center justify-center gap-4 px-2">
+    <div className="relative z-10 flex min-w-[200px] flex-col items-center justify-center gap-4 px-2">
       <div className="text-center text-2xl">🏆</div>
-      <div className="card w-full space-y-1 p-2">
+      <div ref={centerRef} className="card w-full space-y-1 p-2">
         <div className="text-center text-[11px] font-semibold uppercase tracking-wide text-amber-300">Final</div>
         {finalists.length < 2 && <div className="px-2 py-1 text-center text-xs text-zinc-500">Pick both finalists</div>}
         {finalists.map((t) => {
@@ -190,13 +259,18 @@ export default function Bracket({ r32, picks, editable, onChange, actual, elimin
   return (
     // full-bleed: break out of the page's max-width and span the whole browser
     <div className="overflow-x-auto pb-4" style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>
-      <div className="flex w-full min-w-[1100px] items-stretch gap-2 px-4">
+      <div ref={innerRef} className="relative flex w-full min-w-[1100px] items-stretch gap-2 px-4">
+        <svg className="pointer-events-none absolute inset-0" width={size.w} height={size.h}>
+          {segs.map((s, i) => (
+            <line key={i} x1={s[0]} y1={s[1]} x2={s[2]} y2={s[3]} stroke="rgb(113 113 122 / 0.55)" strokeWidth={1.5} />
+          ))}
+        </svg>
         {LEFT.map((col, i) => (
-          <Column key={`l${i}`} col={col} side="left" />
+          <Column key={`l${i}`} col={col} side="left" depth={i} />
         ))}
         {Center}
         {RIGHT.map((col, i) => (
-          <Column key={`r${i}`} col={col} side="right" />
+          <Column key={`r${i}`} col={col} side="right" depth={RIGHT.length - 1 - i} />
         ))}
       </div>
     </div>
