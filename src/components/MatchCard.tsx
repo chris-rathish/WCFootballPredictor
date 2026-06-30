@@ -49,6 +49,11 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
     home !== '' && away !== '' && motm.trim() !== '' && (!knockout || winner !== '')
 
   async function loadOthers() {
+    // toggle closed if already open
+    if (showOthers) {
+      setShowOthers(false)
+      return
+    }
     setShowOthers(true)
     if (others) return
     const { data } = await supabase
@@ -234,7 +239,7 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
           )}
 
           <button className="mt-2 text-sm text-red-400 hover:underline" onClick={loadOthers}>
-            {showOthers ? 'Everyone’s picks ↓' : 'Show everyone’s picks'}
+            {showOthers ? 'Hide everyone’s picks ▲' : 'Show everyone’s picks ▼'}
           </button>
 
           {showOthers && others && (
