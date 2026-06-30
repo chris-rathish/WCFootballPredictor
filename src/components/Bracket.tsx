@@ -188,8 +188,9 @@ export default function Bracket({ r32, picks, editable, onChange, actual, elimin
   )
 
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex min-w-[1100px] items-stretch gap-2">
+    // full-bleed: break out of the page's max-width and span the whole browser
+    <div className="overflow-x-auto pb-4" style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}>
+      <div className="flex w-full min-w-[1100px] items-stretch gap-2 px-4">
         {LEFT.map((col, i) => (
           <Column key={`l${i}`} col={col} side="left" />
         ))}
