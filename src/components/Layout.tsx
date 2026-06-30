@@ -72,7 +72,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
       <header className="sticky top-0 z-20 border-b border-zinc-700/60 bg-night/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
-          <span className="mr-2 text-xl font-bold">⚽ WC Predictor</span>
+          <span className="mr-2 text-xl font-bold">⚽ PPR WC Predictor</span>
           {/* desktop nav */}
           <nav className="hidden flex-wrap items-center gap-1 md:flex">
             {links.map((l) => (

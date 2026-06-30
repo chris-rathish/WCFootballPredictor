@@ -28,7 +28,7 @@ export default function Login() {
       <div className="card w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="text-5xl">⚽</div>
-          <h1 className="mt-2 text-2xl font-bold">World Cup Predictor</h1>
+          <h1 className="mt-2 text-2xl font-bold">PPR WC Predictor</h1>
           <p className="text-sm text-zinc-400">Predict scores, build your bracket, beat your friends.</p>
         </div>
 
