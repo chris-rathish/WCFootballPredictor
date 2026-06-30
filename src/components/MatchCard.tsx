@@ -6,10 +6,23 @@ import { scorePrediction } from '../lib/scoring'
 import Team from './Team'
 import MotmInput from './MotmInput'
 
+export interface MatchDraft {
+  home: string
+  away: string
+  motm: string
+  winner: string
+}
+
 interface Props {
   match: Match
   myPrediction: Prediction | null
   onSaved: () => void
+  // controlled mode (Matches page): values live in the parent so one "Save all
+  // picks" can save every filled-in match at once.
+  draft?: MatchDraft
+  onDraftChange?: (field: keyof MatchDraft, value: string) => void
+  onSaveAll?: () => void
+  savingAll?: boolean
 }
 
 function fmtRemaining(ms: number): string {
@@ -47,28 +60,39 @@ interface OtherPred {
   display_name: string
 }
 
-export default function MatchCard({ match, myPrediction, onSaved }: Props) {
+export default function MatchCard({ match, myPrediction, onSaved, draft, onDraftChange, onSaveAll, savingAll }: Props) {
   const { session } = useAuth()
   const predictable = isPredictable(match)
   const started = hasStarted(match)
   const finished = match.status === 'finished'
+  const controlled = !!draft
 
   const knockout = isKnockout(match)
-  const [home, setHome] = useState<string>(myPrediction?.home_score?.toString() ?? '')
-  const [away, setAway] = useState<string>(myPrediction?.away_score?.toString() ?? '')
-  const [motm, setMotm] = useState<string>(myPrediction?.motm ?? '')
-  const [winner, setWinner] = useState<string>(myPrediction?.winner ?? '')
+  const [homeLocal, setHomeLocal] = useState<string>(myPrediction?.home_score?.toString() ?? '')
+  const [awayLocal, setAwayLocal] = useState<string>(myPrediction?.away_score?.toString() ?? '')
+  const [motmLocal, setMotmLocal] = useState<string>(myPrediction?.motm ?? '')
+  const [winnerLocal, setWinnerLocal] = useState<string>(myPrediction?.winner ?? '')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [others, setOthers] = useState<OtherPred[] | null>(null)
   const [showOthers, setShowOthers] = useState(false)
 
   useEffect(() => {
-    setHome(myPrediction?.home_score?.toString() ?? '')
-    setAway(myPrediction?.away_score?.toString() ?? '')
-    setMotm(myPrediction?.motm ?? '')
-    setWinner(myPrediction?.winner ?? '')
-  }, [myPrediction])
+    if (controlled) return
+    setHomeLocal(myPrediction?.home_score?.toString() ?? '')
+    setAwayLocal(myPrediction?.away_score?.toString() ?? '')
+    setMotmLocal(myPrediction?.motm ?? '')
+    setWinnerLocal(myPrediction?.winner ?? '')
+  }, [myPrediction, controlled])
+
+  const home = controlled ? draft!.home : homeLocal
+  const away = controlled ? draft!.away : awayLocal
+  const motm = controlled ? draft!.motm : motmLocal
+  const winner = controlled ? draft!.winner : winnerLocal
+  const setHome = (v: string) => (controlled ? onDraftChange!('home', v) : setHomeLocal(v))
+  const setAway = (v: string) => (controlled ? onDraftChange!('away', v) : setAwayLocal(v))
+  const setMotm = (v: string) => (controlled ? onDraftChange!('motm', v) : setMotmLocal(v))
+  const setWinner = (v: string) => (controlled ? onDraftChange!('winner', v) : setWinnerLocal(v))
 
   const complete =
     home !== '' && away !== '' && motm.trim() !== '' && (!knockout || winner !== '')
@@ -244,15 +268,21 @@ export default function MatchCard({ match, myPrediction, onSaved }: Props) {
             placeholder="Man of the Match (required)"
           />
           <div className="flex items-center gap-3">
-            <button className="btn-primary" onClick={save} disabled={saving || !complete}>
-              {saving ? 'Saving…' : myPrediction ? 'Update pick' : 'Save pick'}
-            </button>
+            {controlled ? (
+              <button className="btn-primary" onClick={onSaveAll} disabled={savingAll}>
+                {savingAll ? 'Saving…' : 'Save all picks'}
+              </button>
+            ) : (
+              <button className="btn-primary" onClick={save} disabled={saving || !complete}>
+                {saving ? 'Saving…' : myPrediction ? 'Update pick' : 'Save pick'}
+              </button>
+            )}
             {!complete && (
               <span className="text-xs text-amber-300">
                 {knockout ? 'Score, winner & MOTM required' : 'Score & MOTM required'}
               </span>
             )}
-            {msg && <span className="text-sm text-red-300">{msg}</span>}
+            {!controlled && msg && <span className="text-sm text-red-300">{msg}</span>}
           </div>
         </div>
       )}
