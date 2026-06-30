@@ -40,6 +40,12 @@ export default function Layout({ children }: { children: ReactNode }) {
             <NavLink to="/bracket" className={navClass}>
               Bracket
             </NavLink>
+            <NavLink to="/group-preds" className={navClass}>
+              Group Preds
+            </NavLink>
+            <NavLink to="/tournament" className={navClass}>
+              Tournament
+            </NavLink>
             {profile?.is_admin && (
               <NavLink to="/admin" className={navClass}>
                 Admin

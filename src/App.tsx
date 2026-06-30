@@ -7,6 +7,8 @@ import StandingsPage from './pages/StandingsPage'
 import MatchesPage from './pages/MatchesPage'
 import HistoryPage from './pages/HistoryPage'
 import BracketPage from './pages/BracketPage'
+import GroupPredsPage from './pages/GroupPredsPage'
+import TournamentPredsPage from './pages/TournamentPredsPage'
 import AdminPage from './pages/AdminPage'
 
 export default function App() {
@@ -36,6 +38,8 @@ export default function App() {
         <Route path="/matches" element={<MatchesPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/bracket" element={<BracketPage />} />
+        <Route path="/group-preds" element={<GroupPredsPage />} />
+        <Route path="/tournament" element={<TournamentPredsPage />} />
         <Route
           path="/admin"
           element={profile?.is_admin ? <AdminPage /> : <Navigate to="/" replace />}
