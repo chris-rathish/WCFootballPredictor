@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { hasStarted, isKnockout, isPredictable, outcomeLabel, predictionClosesAt, type Match, type Prediction } from '../lib/types'
 import { scorePrediction } from '../lib/scoring'
+import { mode } from '../lib/average'
 import Team from './Team'
 import MotmInput from './MotmInput'
 
@@ -163,6 +164,19 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
           motm: myPrediction.motm,
           winner: myPrediction.winner,
         })
+      : null
+
+  // consensus = most common (mode) score / winner / MOTM among everyone's picks
+  const consensus =
+    others && others.length
+      ? (() => {
+          const h = mode(others.map((o) => o.home_score).filter((x): x is number => x != null))
+          const a = mode(others.map((o) => o.away_score).filter((x): x is number => x != null))
+          const w = mode(others.map((o) => o.winner).filter((x): x is string => !!x))
+          const mt = mode(others.map((o) => o.motm).filter((x): x is string => !!x))
+          const pts = finished ? scorePrediction(match, { home_score: h, away_score: a, winner: w, motm: mt }) : 0
+          return { home_score: h, away_score: a, winner: w, motm: mt, points: pts }
+        })()
       : null
 
   return (
@@ -330,6 +344,19 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
                   </tr>
                 </thead>
                 <tbody>
+                  {consensus && (
+                    <tr className="border-t border-zinc-700/40 bg-amber-500/10 italic text-amber-200">
+                      <td className="py-1 pr-3 font-semibold">
+                        Average <span className="pill bg-amber-500/20 text-amber-300">consensus</span>
+                      </td>
+                      <td className="py-1 pr-3 tabular-nums">
+                        {consensus.home_score ?? '–'}–{consensus.away_score ?? '–'}
+                      </td>
+                      {knockout && <td className="py-1 pr-3">{consensus.winner ?? '—'}</td>}
+                      <td className="py-1 pr-3">{consensus.motm ?? '—'}</td>
+                      <td className="py-1 text-right font-semibold tabular-nums">{finished ? consensus.points : '—'}</td>
+                    </tr>
+                  )}
                   {others.map((o) => (
                     <tr key={o.user_id} className="border-t border-zinc-700/40">
                       <td className="py-1 pr-3">{o.display_name}</td>

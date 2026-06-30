@@ -17,7 +17,7 @@ function cmp<T extends string | number>(a: T, b: T): number {
 }
 
 // most common value; ties broken deterministically (smallest number / first alphabetically)
-function mode<T extends string | number>(values: T[]): T | null {
+export function mode<T extends string | number>(values: T[]): T | null {
   if (!values.length) return null
   const counts = new Map<T, number>()
   for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1)
