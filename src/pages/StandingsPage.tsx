@@ -51,7 +51,9 @@ export default function StandingsPage() {
     }
   }
 
-  const sorted = [...rows].sort((a, b) => {
+  // consensus row ranks together with everyone else
+  const allRows = average ? [...rows, average] : rows
+  const sorted = [...allRows].sort((a, b) => {
     const av = a[sortKey]
     const bv = b[sortKey]
     let cmp: number
@@ -110,11 +112,7 @@ export default function StandingsPage() {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {/* consensus pinned to the top regardless of sort */}
-            {average && renderRow(average, '〜')}
-            {sorted.map((r, i) => renderRow(r, i + 1))}
-          </tbody>
+          <tbody>{sorted.map((r, i) => renderRow(r, i + 1))}</tbody>
         </table>
         {rows.length === 0 && <p className="p-4 text-zinc-400">No players yet.</p>}
       </div>
