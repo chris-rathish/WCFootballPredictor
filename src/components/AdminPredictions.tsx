@@ -89,6 +89,15 @@ function MatchEditor({ userId, matches }: { userId: string; matches: Match[] }) 
     load()
   }, [userId])
 
+  // refresh stored predictions only (e.g. the points pill) WITHOUT resetting the
+  // other rows' drafts the admin may still be typing.
+  async function refreshPreds() {
+    const { data } = await supabase.from('predictions').select('*').eq('user_id', userId)
+    const map: Record<number, Prediction> = {}
+    ;(data as Prediction[] ?? []).forEach((p) => (map[p.match_id] = p))
+    setPreds(map)
+  }
+
   const patchDraft = (matchId: number, patch: Partial<Draft>) =>
     setDrafts((d) => ({ ...d, [matchId]: { ...(d[matchId] ?? emptyDraft), ...patch } }))
 
@@ -153,7 +162,7 @@ function MatchEditor({ userId, matches }: { userId: string; matches: Match[] }) 
           pred={preds[m.id] ?? null}
           draft={drafts[m.id] ?? emptyDraft}
           onDraft={(patch) => patchDraft(m.id, patch)}
-          onSaved={load}
+          onSaved={refreshPreds}
         />
       ))}
       {filtered.length === 0 && <p className="text-sm text-zinc-500">No matches.</p>}

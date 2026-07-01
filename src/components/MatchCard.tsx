@@ -344,30 +344,46 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
                   </tr>
                 </thead>
                 <tbody>
-                  {consensus && (
-                    <tr className="border-t border-zinc-700/40 bg-amber-500/10 italic text-amber-200">
-                      <td className="py-1 pr-3 font-semibold">
-                        Average <span className="pill bg-amber-500/20 text-amber-300">consensus</span>
-                      </td>
-                      <td className="py-1 pr-3 tabular-nums">
-                        {consensus.home_score ?? '–'}–{consensus.away_score ?? '–'}
-                      </td>
-                      {knockout && <td className="py-1 pr-3">{consensus.winner ?? '—'}</td>}
-                      <td className="py-1 pr-3">{consensus.motm ?? '—'}</td>
-                      <td className="py-1 text-right font-semibold tabular-nums">{finished ? consensus.points : '—'}</td>
-                    </tr>
-                  )}
-                  {others.map((o) => (
-                    <tr key={o.user_id} className="border-t border-zinc-700/40">
-                      <td className="py-1 pr-3">{o.display_name}</td>
-                      <td className="py-1 pr-3 tabular-nums">
-                        {o.home_score ?? '–'}–{o.away_score ?? '–'}
-                      </td>
-                      {knockout && <td className="py-1 pr-3 text-zinc-400">{o.winner ?? '—'}</td>}
-                      <td className="py-1 pr-3 text-zinc-400">{o.motm ?? '—'}</td>
-                      <td className="py-1 text-right font-semibold tabular-nums">{o.points}</td>
-                    </tr>
-                  ))}
+                  {[
+                    ...others.map((o) => ({ ...o, isAvg: false })),
+                    ...(consensus
+                      ? [
+                          {
+                            user_id: '__avg__',
+                            display_name: 'Average',
+                            home_score: consensus.home_score,
+                            away_score: consensus.away_score,
+                            winner: consensus.winner,
+                            motm: consensus.motm,
+                            points: consensus.points,
+                            isAvg: true,
+                          },
+                        ]
+                      : []),
+                  ]
+                    .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+                    .map((o) => (
+                      <tr
+                        key={o.user_id}
+                        className={`border-t border-zinc-700/40 ${o.isAvg ? 'bg-amber-500/10 italic text-amber-200' : ''}`}
+                      >
+                        <td className={`py-1 pr-3 ${o.isAvg ? 'font-semibold' : ''}`}>
+                          {o.isAvg ? (
+                            <>
+                              Average <span className="pill bg-amber-500/20 text-amber-300">consensus</span>
+                            </>
+                          ) : (
+                            o.display_name
+                          )}
+                        </td>
+                        <td className="py-1 pr-3 tabular-nums">
+                          {o.home_score ?? '–'}–{o.away_score ?? '–'}
+                        </td>
+                        {knockout && <td className={`py-1 pr-3 ${o.isAvg ? '' : 'text-zinc-400'}`}>{o.winner ?? '—'}</td>}
+                        <td className={`py-1 pr-3 ${o.isAvg ? '' : 'text-zinc-400'}`}>{o.motm ?? '—'}</td>
+                        <td className="py-1 text-right font-semibold tabular-nums">{o.points ?? 0}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
