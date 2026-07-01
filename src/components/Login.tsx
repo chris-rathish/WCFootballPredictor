@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import logo from '../assets/pprlogo.png'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -27,8 +28,8 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="card w-full max-w-md">
         <div className="mb-6 text-center">
-          <div className="text-5xl">⚽</div>
-          <h1 className="mt-2 text-2xl font-bold">PPR WC Predictor</h1>
+          <img src={logo} alt="PPR" className="mx-auto h-24 w-24 rounded-2xl object-cover shadow-lg" />
+          <h1 className="mt-3 text-2xl font-bold">PPR WC Predictor</h1>
           <p className="text-sm text-zinc-400">Predict scores, build your bracket, beat your friends.</p>
         </div>
 

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { isKnockout, isPredictable, type Match, type Prediction } from '../lib/types'
 import { IS_DEMO } from '../lib/supabase'
 import { resetDemo } from '../lib/demoClient'
+import logo from '../assets/pprlogo.png'
 
 function navClass({ isActive }: { isActive: boolean }) {
   return [
@@ -72,7 +73,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       )}
       <header className="sticky top-0 z-20 border-b border-zinc-700/60 bg-night/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center gap-2 px-4 py-3">
-          <span className="mr-2 text-xl font-bold">⚽ PPR WC Predictor</span>
+          <span className="mr-2 flex items-center gap-2 text-xl font-bold">
+            <img src={logo} alt="PPR" className="h-8 w-8 rounded-md object-cover" />
+            PPR WC Predictor
+          </span>
           {/* desktop nav */}
           <nav className="hidden flex-wrap items-center gap-1 md:flex">
             {links.map((l) => (
