@@ -4,8 +4,9 @@ import type { Profile } from '../lib/types'
 import AdminMatches from '../components/AdminMatches'
 import AdminBracket from '../components/AdminBracket'
 import AdminPredictions from '../components/AdminPredictions'
+import AdminCoverage from '../components/AdminCoverage'
 
-type Tab = 'matches' | 'predictions' | 'bracket' | 'players'
+type Tab = 'matches' | 'predictions' | 'coverage' | 'bracket' | 'players'
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('matches')
@@ -14,19 +15,20 @@ export default function AdminPage() {
     <div>
       <h1 className="mb-4 text-xl font-bold">Admin</h1>
       <div className="mb-4 flex gap-1 text-sm">
-        {(['matches', 'predictions', 'bracket', 'players'] as Tab[]).map((t) => (
+        {(['matches', 'predictions', 'coverage', 'bracket', 'players'] as Tab[]).map((t) => (
           <button
             key={t}
             className={`rounded-md px-3 py-1 capitalize ${tab === t ? 'bg-red-600 text-white' : 'bg-zinc-700/60 text-zinc-300'}`}
             onClick={() => setTab(t)}
           >
-            {t === 'matches' ? 'Matches & Results' : t === 'predictions' ? 'Edit Predictions' : t}
+            {t === 'matches' ? 'Matches & Results' : t === 'predictions' ? 'Edit Predictions' : t === 'coverage' ? 'Coverage' : t}
           </button>
         ))}
       </div>
 
       {tab === 'matches' && <AdminMatches />}
       {tab === 'predictions' && <AdminPredictions />}
+      {tab === 'coverage' && <AdminCoverage />}
       {tab === 'bracket' && <AdminBracket />}
       {tab === 'players' && <Players />}
     </div>

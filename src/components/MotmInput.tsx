@@ -26,8 +26,11 @@ export default function MotmInput({ home, away, value, onChange, placeholder = '
     return () => document.removeEventListener('mousedown', onDoc)
   }, [])
 
-  const q = value.trim().toLowerCase()
-  const match = (n: string) => !typed || !q || n.toLowerCase().includes(q)
+  // strip accents so "dz" matches "Džeko", "muller" matches "Müller", etc.
+  const DIACRITICS = new RegExp('[\\u0300-\\u036f]', 'g')
+  const norm = (s: string) => s.normalize('NFD').replace(DIACRITICS, '').toLowerCase()
+  const q = norm(value.trim())
+  const match = (n: string) => !typed || !q || norm(n).includes(q)
   const homeList = squadFor(home).filter(match)
   const awayList = squadFor(away).filter(match)
 

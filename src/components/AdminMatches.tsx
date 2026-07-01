@@ -233,6 +233,18 @@ function ResultRow({ match, onChanged, onDelete }: { match: Match; onChanged: ()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // knockout: the higher score wins → autofill winner; only a tie needs a manual pick.
+  function applyScores(h: string, a: string) {
+    setHome(h)
+    setAway(a)
+    if (!knockout || h === '' || a === '') return
+    const hn = parseInt(h, 10)
+    const an = parseInt(a, 10)
+    if (hn > an) setWinner(match.home_team)
+    else if (an > hn) setWinner(match.away_team)
+    // equal → leave winner as-is for the admin to decide (penalties)
+  }
+
   async function saveResult(finish: boolean) {
     setSaving(true)
     setSaved(false)
@@ -266,9 +278,9 @@ function ResultRow({ match, onChanged, onDelete }: { match: Match; onChanged: ()
         {match.status === 'finished' ? 'finished' : 'awaiting result'}
       </span>
       <div className="ml-auto flex items-center gap-1">
-        <input className="input w-12 text-center" value={home} onChange={(e) => setHome(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
+        <input className="input w-12 text-center" value={home} onChange={(e) => applyScores(e.target.value.replace(/[^0-9]/g, ''), away)} placeholder="–" />
         <span>:</span>
-        <input className="input w-12 text-center" value={away} onChange={(e) => setAway(e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
+        <input className="input w-12 text-center" value={away} onChange={(e) => applyScores(home, e.target.value.replace(/[^0-9]/g, ''))} placeholder="–" />
         {knockout && (
           <select className="input w-36" value={winner} onChange={(e) => setWinner(e.target.value)} title="Team that advanced (penalties count)">
             <option value="">Advances…</option>
