@@ -362,10 +362,14 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
                       : []),
                   ]
                     .sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
-                    .map((o) => (
+                    .map((o) => {
+                      const perfect = (o.points ?? 0) === 20 && finished
+                      return (
                       <tr
                         key={o.user_id}
-                        className={`border-t border-zinc-700/40 ${o.isAvg ? 'bg-amber-500/10 italic text-amber-200' : ''}`}
+                        className={`border-t border-zinc-700/40 ${o.isAvg ? 'italic text-amber-200' : ''} ${
+                          perfect ? 'bg-emerald-500/15' : o.isAvg ? 'bg-amber-500/10' : ''
+                        }`}
                       >
                         <td className={`py-1 pr-3 ${o.isAvg ? 'font-semibold' : ''}`}>
                           {o.isAvg ? (
@@ -375,6 +379,7 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
                           ) : (
                             o.display_name
                           )}
+                          {perfect && <span title="Perfect prediction"> 🎯</span>}
                         </td>
                         <td className="py-1 pr-3 tabular-nums">
                           {o.home_score ?? '–'}–{o.away_score ?? '–'}
@@ -383,7 +388,8 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
                         <td className={`py-1 pr-3 ${o.isAvg ? '' : 'text-zinc-400'}`}>{o.motm ?? '—'}</td>
                         <td className="py-1 text-right font-semibold tabular-nums">{o.points ?? 0}</td>
                       </tr>
-                    ))}
+                      )
+                    })}
                 </tbody>
               </table>
             </div>

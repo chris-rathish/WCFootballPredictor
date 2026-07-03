@@ -1,10 +1,41 @@
 import { useState } from 'react'
 import { GROUP_MATCH_PREDS, type GMGame } from '../data/groupMatchPreds'
+import { mode } from '../lib/average'
 import Team from './Team'
+
+interface Row {
+  name: string
+  hs: number | null
+  as: number | null
+  winner: string
+  motm: string
+  pts: number
+  isAvg: boolean
+}
+
+// The "Average" consensus for a group match: most-common score/winner/MOTM,
+// scored the same way as a player (+5 home, +5 away, +5 outcome, +5 MOTM).
+function groupConsensus(g: GMGame): Row | null {
+  if (g.hs == null || g.as == null) return null
+  const ps = g.players.filter((p) => p.hs != null && p.as != null)
+  if (!ps.length) return null
+  const hs = mode(ps.map((p) => p.hs as number))
+  const as = mode(ps.map((p) => p.as as number))
+  const winner = mode(ps.map((p) => p.winner).filter(Boolean)) ?? ''
+  const motm = mode(ps.map((p) => p.motm).filter(Boolean)) ?? ''
+  let pts = 0
+  if (hs === g.hs) pts += 5
+  if (as === g.as) pts += 5
+  if (hs != null && as != null && Math.sign(hs - as) === Math.sign(g.hs - g.as)) pts += 5
+  if (g.motm && motm && g.motm.trim().toLowerCase() === motm.trim().toLowerCase()) pts += 5
+  return { name: 'Average', hs, as, winner, motm, pts, isAvg: true }
+}
 
 function GameRow({ g }: { g: GMGame }) {
   const [open, setOpen] = useState(false)
-  const ranked = [...g.players].sort((a, b) => b.pts - a.pts)
+  const consensus = groupConsensus(g)
+  const rows: Row[] = [...g.players.map((p) => ({ ...p, isAvg: false })), ...(consensus ? [consensus] : [])]
+  const ranked = rows.sort((a, b) => b.pts - a.pts)
   return (
     <div className="card">
       <button className="flex w-full items-center justify-between gap-2 text-sm" onClick={() => setOpen((o) => !o)}>
@@ -35,17 +66,34 @@ function GameRow({ g }: { g: GMGame }) {
               </tr>
             </thead>
             <tbody>
-              {ranked.map((p) => (
-                <tr key={p.name} className="border-t border-zinc-700/40">
-                  <td className="py-1 pr-3 font-medium">{p.name}</td>
-                  <td className="py-1 pr-3 tabular-nums">
-                    {p.hs == null && p.as == null ? '—' : `${p.hs ?? '–'}–${p.as ?? '–'}`}
-                  </td>
-                  <td className="py-1 pr-3 text-zinc-400">{p.winner || '—'}</td>
-                  <td className="py-1 pr-3 text-zinc-400">{p.motm || '—'}</td>
-                  <td className="py-1 text-right font-semibold tabular-nums">{p.pts}</td>
-                </tr>
-              ))}
+              {ranked.map((p) => {
+                const perfect = p.pts === 20
+                return (
+                  <tr
+                    key={p.name}
+                    className={`border-t border-zinc-700/40 ${p.isAvg ? 'italic text-amber-200' : ''} ${
+                      perfect ? 'bg-emerald-500/15' : p.isAvg ? 'bg-amber-500/10' : ''
+                    }`}
+                  >
+                    <td className="py-1 pr-3 font-medium">
+                      {p.isAvg ? (
+                        <>
+                          Average <span className="pill bg-amber-500/20 text-amber-300">consensus</span>
+                        </>
+                      ) : (
+                        p.name
+                      )}
+                      {perfect && <span title="Perfect prediction"> 🎯</span>}
+                    </td>
+                    <td className="py-1 pr-3 tabular-nums">
+                      {p.hs == null && p.as == null ? '—' : `${p.hs ?? '–'}–${p.as ?? '–'}`}
+                    </td>
+                    <td className={`py-1 pr-3 ${p.isAvg ? '' : 'text-zinc-400'}`}>{p.winner || '—'}</td>
+                    <td className={`py-1 pr-3 ${p.isAvg ? '' : 'text-zinc-400'}`}>{p.motm || '—'}</td>
+                    <td className="py-1 text-right font-semibold tabular-nums">{p.pts}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
