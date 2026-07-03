@@ -368,7 +368,7 @@ export default function MatchCard({ match, myPrediction, onSaved, draft, onDraft
                       <tr
                         key={o.user_id}
                         className={`border-t border-zinc-700/40 ${o.isAvg ? 'italic text-amber-200' : ''} ${
-                          perfect ? 'bg-emerald-500/15' : o.isAvg ? 'bg-amber-500/10' : ''
+                          perfect ? 'bg-slate-400/10' : o.isAvg ? 'bg-amber-500/10' : ''
                         }`}
                       >
                         <td className={`py-1 pr-3 ${o.isAvg ? 'font-semibold' : ''}`}>

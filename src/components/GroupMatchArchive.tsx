@@ -72,7 +72,7 @@ function GameRow({ g }: { g: GMGame }) {
                   <tr
                     key={p.name}
                     className={`border-t border-zinc-700/40 ${p.isAvg ? 'italic text-amber-200' : ''} ${
-                      perfect ? 'bg-emerald-500/15' : p.isAvg ? 'bg-amber-500/10' : ''
+                      perfect ? 'bg-slate-400/10' : p.isAvg ? 'bg-amber-500/10' : ''
                     }`}
                   >
                     <td className="py-1 pr-3 font-medium">
