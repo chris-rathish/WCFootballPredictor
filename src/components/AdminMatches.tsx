@@ -5,6 +5,7 @@ import { KNOCKOUT_KICKOFFS } from '../lib/knockoutSchedule'
 import { TEAM_NAMES, TEAM_DATALIST_ID } from '../lib/flags'
 import Team from './Team'
 import MotmInput from './MotmInput'
+import Collapsible from './Collapsible'
 
 const STAGES: Stage[] = ['group', 'R32', 'R16', 'QF', 'SF', '3RD', 'FINAL']
 
@@ -123,6 +124,9 @@ export default function AdminMatches() {
   const awaiting = matches.filter((m) => m.status !== 'finished' && isLocked(m)) // kicked off, no result yet
   const upcoming = matches.filter((m) => m.status !== 'finished' && !isLocked(m)) // not started
   const completed = matches.filter((m) => m.status === 'finished')
+  // R32 is done — tuck it into a collapsible so the current round stays front-and-centre
+  const completedR32 = completed.filter((m) => m.stage === 'R32')
+  const completedRest = completed.filter((m) => m.stage !== 'R32')
 
   return (
     <div className="space-y-8">
@@ -232,10 +236,19 @@ export default function AdminMatches() {
           <h3 className="mb-2 text-lg font-semibold text-zinc-300">Completed</h3>
           <p className="mb-3 text-sm text-zinc-400">Already scored — edit if you need to correct a result.</p>
           <div className="space-y-2">
-            {completed.map((m) => (
+            {completedRest.map((m) => (
               <ResultRow key={m.id} match={m} onChanged={load} onDelete={() => deleteMatch(m.id)} />
             ))}
           </div>
+          {completedR32.length > 0 && (
+            <div className={completedRest.length > 0 ? 'mt-2' : ''}>
+              <Collapsible title="Round of 32" count={completedR32.length}>
+                {completedR32.map((m) => (
+                  <ResultRow key={m.id} match={m} onChanged={load} onDelete={() => deleteMatch(m.id)} />
+                ))}
+              </Collapsible>
+            </div>
+          )}
         </section>
       )}
     </div>

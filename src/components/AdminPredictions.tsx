@@ -4,6 +4,7 @@ import { isKnockout, type BracketPicks, type Match, type Prediction, type Profil
 import Bracket from './Bracket'
 import Team from './Team'
 import MotmInput from './MotmInput'
+import Collapsible from './Collapsible'
 
 type View = 'matches' | 'bracket'
 
@@ -145,6 +146,26 @@ function MatchEditor({ userId, matches }: { userId: string; matches: Match[] }) 
     return d && d.home !== '' && d.away !== ''
   }).length
 
+  // latest match to be played first, earliest already-played at the bottom
+  // (no kickoff set yet = furthest-future, so it sorts to the top)
+  const koTime = (m: Match) => (m.kickoff ? new Date(m.kickoff).getTime() : Infinity)
+  const sorted = useMemo(() => [...filtered].sort((a, b) => koTime(b) - koTime(a)), [filtered])
+  const r32 = sorted.filter((m) => m.stage === 'R32')
+  const rest = sorted.filter((m) => m.stage !== 'R32')
+  const searching = filter.trim() !== ''
+
+  const renderRow = (m: Match) => (
+    <PredRow
+      key={m.id}
+      match={m}
+      userId={userId}
+      pred={preds[m.id] ?? null}
+      draft={drafts[m.id] ?? emptyDraft}
+      onDraft={(patch) => patchDraft(m.id, patch)}
+      onSaved={refreshPreds}
+    />
+  )
+
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -154,17 +175,18 @@ function MatchEditor({ userId, matches }: { userId: string; matches: Match[] }) 
         </button>
         {savedAll && <span className="text-sm text-emerald-300">Saved ✓</span>}
       </div>
-      {filtered.map((m) => (
-        <PredRow
-          key={m.id}
-          match={m}
-          userId={userId}
-          pred={preds[m.id] ?? null}
-          draft={drafts[m.id] ?? emptyDraft}
-          onDraft={(patch) => patchDraft(m.id, patch)}
-          onSaved={refreshPreds}
-        />
-      ))}
+      {searching ? (
+        sorted.map(renderRow)
+      ) : (
+        <>
+          {rest.map(renderRow)}
+          {r32.length > 0 && (
+            <Collapsible title="Round of 32" count={r32.length}>
+              {r32.map(renderRow)}
+            </Collapsible>
+          )}
+        </>
+      )}
       {filtered.length === 0 && <p className="text-sm text-zinc-500">No matches.</p>}
     </div>
   )

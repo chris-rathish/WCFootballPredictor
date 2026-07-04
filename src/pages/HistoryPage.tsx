@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { hasStarted, type Match, type Prediction } from '../lib/types'
 import MatchCard from '../components/MatchCard'
 import GroupMatchArchive from '../components/GroupMatchArchive'
+import Collapsible from '../components/Collapsible'
 
 export default function HistoryPage() {
   const { session } = useAuth()
@@ -37,6 +38,9 @@ export default function HistoryPage() {
     [matches]
   )
   const completed = useMemo(() => matches.filter((m) => m.status === 'finished'), [matches])
+  // R32 is over — collapse it so the current round leads
+  const completedR32 = useMemo(() => completed.filter((m) => m.stage === 'R32'), [completed])
+  const completedRest = useMemo(() => completed.filter((m) => m.stage !== 'R32'), [completed])
 
   if (loading) return <p className="text-zinc-400">Loading history…</p>
 
@@ -72,10 +76,23 @@ export default function HistoryPage() {
         {completed.length === 0 ? (
           <div className="card text-sm text-zinc-500">No matches completed yet.</div>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {completed.map((m) => (
-              <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />
-            ))}
+          <div className="space-y-3">
+            {completedRest.length > 0 && (
+              <div className="grid gap-3 md:grid-cols-2">
+                {completedRest.map((m) => (
+                  <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />
+                ))}
+              </div>
+            )}
+            {completedR32.length > 0 && (
+              <Collapsible title="Round of 32" count={completedR32.length}>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {completedR32.map((m) => (
+                    <MatchCard key={m.id} match={m} myPrediction={preds[m.id] ?? null} onSaved={load} />
+                  ))}
+                </div>
+              </Collapsible>
+            )}
           </div>
         )}
       </section>
