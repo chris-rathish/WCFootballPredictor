@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { isKnockout, isLocked, type Match, type Stage } from '../lib/types'
+import { KNOCKOUT_KICKOFFS } from '../lib/knockoutSchedule'
 import { TEAM_NAMES, TEAM_DATALIST_ID } from '../lib/flags'
 import Team from './Team'
 import MotmInput from './MotmInput'
@@ -76,27 +77,41 @@ export default function AdminMatches() {
       if (to === 'FINAL') {
         // final + 3rd place from the two semis
         const [s1, s2] = cur
-        newMatches.push({ stage: 'FINAL', label: 'FINAL', home_team: s1.winner, away_team: s2.winner })
-        newMatches.push({ stage: '3RD', label: '3RD', home_team: loserOf(s1), away_team: loserOf(s2) })
+        newMatches.push({ stage: 'FINAL', label: 'FINAL', home_team: s1.winner, away_team: s2.winner, kickoff: KNOCKOUT_KICKOFFS['FINAL'] ?? null })
+        newMatches.push({ stage: '3RD', label: '3RD', home_team: loserOf(s1), away_team: loserOf(s2), kickoff: KNOCKOUT_KICKOFFS['3RD'] ?? null })
       } else {
         for (let i = 0; i < cur.length; i += 2) {
+          const label = `${to}-${i / 2 + 1}`
           newMatches.push({
             stage: to,
-            label: `${to}-${i / 2 + 1}`,
+            label,
             home_team: cur[i].winner,
             away_team: cur[i + 1]?.winner ?? 'TBD',
+            kickoff: KNOCKOUT_KICKOFFS[label] ?? null, // pre-fill from the WC26 schedule
           })
         }
       }
       const { error } = await supabase.from('matches').insert(newMatches)
       if (error) alert(error.message)
       else {
-        alert(`Created ${newMatches.length} ${to} fixture(s). Set their kickoff times below.`)
+        alert(`Created ${newMatches.length} ${to} fixture(s) with kickoff times from the WC26 schedule — adjust below if needed.`)
         load()
       }
       return
     }
     alert('Nothing to generate — the current round isn’t fully finished, or the next round already exists.')
+  }
+
+  // fill kickoff for any existing knockout fixture that's missing one (from the WC26 schedule)
+  async function backfillKickoffs() {
+    const missing = matches.filter((m) => !m.kickoff && m.label && KNOCKOUT_KICKOFFS[m.label])
+    if (!missing.length) return alert('No missing kickoff times to fill — every knockout fixture already has one.')
+    for (const m of missing) {
+      const { error } = await supabase.from('matches').update({ kickoff: KNOCKOUT_KICKOFFS[m.label!] }).eq('id', m.id)
+      if (error) return alert(error.message)
+    }
+    alert(`Set kickoff times for ${missing.length} match(es) from the WC26 schedule.`)
+    load()
   }
 
   // team autofill = known WC teams ∪ teams already used in matches
@@ -122,7 +137,10 @@ export default function AdminMatches() {
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="pill bg-red-600 text-white">1</span>
           <h3 className="text-lg font-semibold">Add the match(es) of the day</h3>
-          <button className="btn-ghost ml-auto px-3 py-1 text-sm" onClick={generateNextRound} title="Pair the winners of the last completed round into the next round">
+          <button className="btn-ghost ml-auto px-3 py-1 text-sm" onClick={backfillKickoffs} title="Fill any missing knockout kickoff times from the WC26 schedule">
+            🕒 Fill kickoff times
+          </button>
+          <button className="btn-ghost px-3 py-1 text-sm" onClick={generateNextRound} title="Pair the winners of the last completed round into the next round">
             ✨ Generate next round
           </button>
         </div>
