@@ -78,13 +78,13 @@ create table if not exists public.settings (
   bracket_r32      jsonb not null default '[]'::jsonb,  -- 16 matchups: [{"home":"...","away":"..."}, ...]
   actual_bracket   jsonb not null default '{}'::jsonb,  -- admin-entered real advancers, same shape as picks
   bracket_deadline timestamptz,                          -- brackets lock at this time
-  -- bracket scoring points per correctly predicted advancer
-  pts_r16          int not null default 5,
-  pts_qf           int not null default 10,
-  pts_sf           int not null default 15,
+  -- bracket scoring points per correctly predicted advancer (flat 20 each)
+  pts_r16          int not null default 20,
+  pts_qf           int not null default 20,
+  pts_sf           int not null default 20,
   pts_final        int not null default 20,
-  pts_champion     int not null default 30,
-  pts_third        int not null default 10,
+  pts_champion     int not null default 20,
+  pts_third        int not null default 20,
   constraint settings_singleton check (id = 1)
 );
 

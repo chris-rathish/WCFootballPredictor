@@ -153,12 +153,12 @@ export function buildDemoStore(): DemoStore {
         bracket_r32: R32,
         actual_bracket: {},
         bracket_deadline: iso(2, 12), // future -> bracket editable
-        pts_r16: 5,
-        pts_qf: 10,
-        pts_sf: 15,
+        pts_r16: 20,
+        pts_qf: 20,
+        pts_sf: 20,
         pts_final: 20,
-        pts_champion: 30,
-        pts_third: 10,
+        pts_champion: 20,
+        pts_third: 20,
       },
     ],
   }

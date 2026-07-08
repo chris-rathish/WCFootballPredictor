@@ -16,7 +16,7 @@ export default function AdminBracket() {
   const [r32, setR32] = useState<R32Matchup[]>([])
   const [actual, setActual] = useState<BracketPicks>({})
   const [deadline, setDeadline] = useState('')
-  const [pts, setPts] = useState({ r16: 5, qf: 10, sf: 15, final: 20, champion: 30, third: 10 })
+  const [pts, setPts] = useState({ r16: 20, qf: 20, sf: 20, final: 20, champion: 20, third: 20 })
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function AdminBracket() {
       setR32(grid)
       setActual(s.actual_bracket ?? {})
       setDeadline(toLocalInput(s.bracket_deadline))
-      setPts({ r16: s.pts_r16, qf: s.pts_qf, sf: s.pts_sf, final: s.pts_final, champion: s.pts_champion, third: s.pts_third ?? 10 })
+      setPts({ r16: s.pts_r16, qf: s.pts_qf, sf: s.pts_sf, final: s.pts_final, champion: s.pts_champion, third: s.pts_third ?? 20 })
     })
   }, [])
 
