@@ -57,7 +57,11 @@ export default function AdminMatches() {
   }
 
   // ---- auto-generate the next knockout round from finished results ----
-  const labelNum = (l: string | null) => parseInt((l ?? '').match(/\d+/)?.[0] ?? '0', 10)
+  // use the LAST number in the label (R16-3 → 3, not 16; RTT16 → 16; QF-2 → 2)
+  const labelNum = (l: string | null) => {
+    const nums = (l ?? '').match(/\d+/g)
+    return nums ? parseInt(nums[nums.length - 1], 10) : 0
+  }
   const loserOf = (m: Match) => (m.winner === m.home_team ? m.away_team : m.home_team)
 
   async function generateNextRound() {
