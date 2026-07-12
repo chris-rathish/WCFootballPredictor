@@ -7,9 +7,9 @@
 --    Stage 4  both finalists  (the 2 SF winners)      → 20
 --    Stage 5  champion + third place (both correct)   → 20
 --  Max 100. Replaces the old per-pick scoring.
---  Also shows bracket points on the leaderboard as stages complete
---  (previously hidden until the FINAL was played).
---  Run ONCE in the SQL Editor. Safe to re-run.
+--  Bracket points stay HIDDEN from the main leaderboard until the FINAL is
+--  played (the Brackets tab still shows live scores). Run ONCE in the SQL
+--  Editor. Safe to re-run.
 -- =====================================================================
 
 create or replace function public.recompute_brackets()
@@ -63,7 +63,9 @@ begin
 end;
 $$;
 
--- Show bracket points live (as each stage completes), not only after the FINAL.
+-- Leaderboard: bracket points stay hidden until the FINAL is played (unchanged
+-- gating). Re-created here only so the column reflects the new stage scoring
+-- once the tournament ends. The Brackets tab shows live scores meanwhile.
 drop view if exists public.leaderboard;
 create view public.leaderboard as
 select
@@ -72,15 +74,16 @@ select
   p.gs_match_pts + coalesce(mp.group_pts, 0)                                    as group_stage_matches,
   p.gs_pred_pts                                                                 as group_stage_prediction,
   coalesce(mp.ko_pts, 0)                                                        as knockout_stage_matches,
-  coalesce(b.points, 0)                                                         as knockout_stage_prediction,
+  case when tourney.over then coalesce(b.points, 0) else 0 end                  as knockout_stage_prediction,
   p.tourney_pts                                                                 as tournament_predictions,
   p.gs_match_pts + coalesce(mp.group_pts, 0)
     + p.gs_pred_pts
     + coalesce(mp.ko_pts, 0)
-    + coalesce(b.points, 0)
+    + (case when tourney.over then coalesce(b.points, 0) else 0 end)
     + p.tourney_pts                                                            as total_points,
   p.perfect_pts + coalesce(mp.perfect, 0)                                       as perfect_predictions
 from public.profiles p
+cross join (select exists (select 1 from public.matches where stage = 'FINAL' and status = 'finished') as over) tourney
 left join (
   select pr.user_id,
     sum(case when m.stage = 'group' then pr.points else 0 end) as group_pts,

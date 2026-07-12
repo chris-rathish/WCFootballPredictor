@@ -211,15 +211,16 @@ select
   p.gs_match_pts + coalesce(mp.group_pts, 0)                                    as group_stage_matches,
   p.gs_pred_pts                                                                 as group_stage_prediction,
   coalesce(mp.ko_pts, 0)                                                        as knockout_stage_matches,
-  coalesce(b.points, 0)                                                         as knockout_stage_prediction,
+  case when tourney.over then coalesce(b.points, 0) else 0 end                  as knockout_stage_prediction,
   p.tourney_pts                                                                 as tournament_predictions,
   p.gs_match_pts + coalesce(mp.group_pts, 0)
     + p.gs_pred_pts
     + coalesce(mp.ko_pts, 0)
-    + coalesce(b.points, 0)
+    + (case when tourney.over then coalesce(b.points, 0) else 0 end)
     + p.tourney_pts                                                            as total_points,
   p.perfect_pts + coalesce(mp.perfect, 0)                                       as perfect_predictions
 from public.profiles p
+cross join (select exists (select 1 from public.matches where stage = 'FINAL' and status = 'finished') as over) tourney
 left join (
   select pr.user_id,
     sum(case when m.stage = 'group' then pr.points else 0 end) as group_pts,
