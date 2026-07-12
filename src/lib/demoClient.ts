@@ -62,21 +62,19 @@ function recalcMatch(matchId: number) {
 function recalcBrackets() {
   const s = store.settings[0]
   const actual = s.actual_bracket || {}
+  // 20 pts per stage predicted fully correctly (every advancer right); max 100
+  const STAGE = 20
+  const SIZE: Record<'R16' | 'QF' | 'SF' | 'FINAL', number> = { R16: 16, QF: 8, SF: 4, FINAL: 2 }
   for (const b of store.brackets) {
     let pts = 0
-    const rounds: [keyof typeof actual, number][] = [
-      ['R16', s.pts_r16],
-      ['QF', s.pts_qf],
-      ['SF', s.pts_sf],
-      ['FINAL', s.pts_final],
-    ]
-    for (const [round, val] of rounds) {
+    for (const round of ['R16', 'QF', 'SF', 'FINAL'] as const) {
       const actualList: string[] = (actual[round] as string[]) ?? []
       const picks: string[] = (b.picks[round as keyof typeof b.picks] as string[]) ?? []
-      for (const t of picks) if (t && actualList.includes(t)) pts += val
+      let correct = 0
+      for (const t of picks) if (t && actualList.includes(t)) correct++
+      if (correct === SIZE[round]) pts += STAGE
     }
-    if (actual.CHAMPION && b.picks.CHAMPION && actual.CHAMPION === b.picks.CHAMPION) pts += s.pts_champion
-    if (actual.THIRD && b.picks.THIRD && actual.THIRD === b.picks.THIRD) pts += s.pts_third
+    if (actual.CHAMPION && actual.THIRD && b.picks.CHAMPION === actual.CHAMPION && b.picks.THIRD === actual.THIRD) pts += STAGE
     b.points = pts
   }
 }

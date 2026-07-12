@@ -64,12 +64,12 @@ export default function BracketPage() {
         user_id: b.user_id,
         display_name: names[b.user_id] ?? '—',
         picks: b.picks,
-        score: scoreBracket(b.picks, actual, settings),
+        score: scoreBracket(b.picks, actual),
       }))
       .sort((a, b) => b.score - a.score)
   }, [allBrackets, names, actual, settings])
 
-  const myScore = settings ? scoreBracket(picks, actual, settings) : 0
+  const myScore = scoreBracket(picks, actual)
 
   async function save() {
     if (!session?.user) return

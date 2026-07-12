@@ -37,23 +37,31 @@ export function eliminatedFromMatches(matches: Match[]): BracketPicks {
   }
 }
 
-type BracketPts = Pick<Settings, 'pts_r16' | 'pts_qf' | 'pts_sf' | 'pts_final' | 'pts_champion' | 'pts_third'>
+// Bracket scoring: 20 points for each stage predicted FULLY correctly (every
+// advancer right), otherwise 0 for that stage. Five stages → max 100.
+// (mirrors recompute_brackets in SQL.)
+export const STAGE_POINTS = 20
+// advancers per stage in a 32-team bracket: R32→16, R16→8, QF→4, SF→2
+const STAGE_SIZE = { R16: 16, QF: 8, SF: 4, FINAL: 2 } as const
 
-// Score a bracket against the actual results (mirrors recompute_brackets in SQL).
-export function scoreBracket(picks: BracketPicks, actual: BracketPicks, pts: BracketPts): number {
+export function scoreBracket(picks: BracketPicks, actual: BracketPicks): number {
   let total = 0
-  const round = (key: 'R16' | 'QF' | 'SF' | 'FINAL', val: number) => {
+  const stageAllCorrect = (key: 'R16' | 'QF' | 'SF' | 'FINAL') => {
     const actualList = (actual[key] as string[] | undefined) ?? []
-    for (const t of (picks[key] as string[] | undefined) ?? []) {
-      if (t && actualList.includes(t)) total += val
-    }
+    const picked = (picks[key] as string[] | undefined) ?? []
+    let correct = 0
+    for (const t of picked) if (t && actualList.includes(t)) correct++
+    // reaching the full count is only possible when the round is complete AND
+    // every advancer was predicted, so this doubles as the "stage done" check
+    return correct === STAGE_SIZE[key]
   }
-  round('R16', pts.pts_r16)
-  round('QF', pts.pts_qf)
-  round('SF', pts.pts_sf)
-  round('FINAL', pts.pts_final)
-  if (actual.CHAMPION && picks.CHAMPION === actual.CHAMPION) total += pts.pts_champion
-  if (actual.THIRD && picks.THIRD === actual.THIRD) total += pts.pts_third
+  for (const key of ['R16', 'QF', 'SF', 'FINAL'] as const) {
+    if (stageAllCorrect(key)) total += STAGE_POINTS
+  }
+  // final + third place count as one stage: both must be correct
+  if (actual.CHAMPION && actual.THIRD && picks.CHAMPION === actual.CHAMPION && picks.THIRD === actual.THIRD) {
+    total += STAGE_POINTS
+  }
   return total
 }
 
