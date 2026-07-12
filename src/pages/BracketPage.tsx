@@ -55,7 +55,6 @@ export default function BracketPage() {
   const locked = deadline != null && new Date(deadline).getTime() <= Date.now()
   const actual = useMemo(() => actualFromMatches(matches), [matches])
   const eliminated = useMemo(() => eliminatedFromMatches(matches), [matches])
-  const resultsStarted = (actual.R16 ?? []).length > 0
 
   const standings = useMemo<BracketRow[]>(() => {
     if (!settings) return []
@@ -96,6 +95,7 @@ export default function BracketPage() {
         )}
         <span className="ml-auto rounded-lg bg-zinc-800 px-3 py-1 text-sm">
           Your bracket score: <span className="font-bold text-red-300">{myScore}</span>
+          <span className="text-zinc-500"> / 100</span>
         </span>
         {!locked && (
           <button className="btn-primary" onClick={save} disabled={saving}>
@@ -105,11 +105,30 @@ export default function BracketPage() {
         {msg && <span className="text-sm text-red-300">{msg}</span>}
       </div>
 
-      <p className="text-sm text-zinc-400">
-        {resultsStarted
-          ? 'Updating live as results come in — green = correct, red = knocked out. This score adds to your Knockout Stage Prediction on the leaderboard when the tournament ends.'
-          : 'Locked picks. Once knockout matches are played, correct picks turn green and wrong ones red, and your score updates here automatically.'}
-      </p>
+      <div className="card space-y-2 text-sm">
+        <div className="font-semibold text-zinc-200">How the bracket is scored</div>
+        <p className="text-zinc-400">
+          <span className="text-zinc-200">20 points per stage</span> that you predict{' '}
+          <span className="text-zinc-200">fully correctly</span> — every advancer in that stage right. One wrong pick and
+          that stage scores 0. Five stages, so a perfect bracket is <span className="text-zinc-200">100</span>:
+        </p>
+        <ul className="ml-1 grid gap-x-4 gap-y-0.5 text-zinc-400 sm:grid-cols-2">
+          <li>• All 16 Round-of-32 winners → 20</li>
+          <li>• All 8 Round-of-16 winners → 20</li>
+          <li>• All 4 quarter-final winners → 20</li>
+          <li>• Both finalists (semi winners) → 20</li>
+          <li>• Champion + 3rd place both right → 20</li>
+        </ul>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-4 rounded bg-emerald-400"></span> stage complete — earned its 20</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-4 rounded bg-zinc-800 ring-1 ring-inset ring-emerald-500/50"></span> correct pick, stage not (yet) perfect</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-4 rounded bg-red-500"></span> knocked out</span>
+        </div>
+        <p className="pt-1 text-xs text-zinc-500">
+          Your bracket score shows live here, but it only adds to your <span className="text-zinc-400">Knockout Stage
+          Prediction</span> on the main leaderboard once the tournament ends.
+        </p>
+      </div>
 
       <Bracket r32={r32} picks={picks} editable={!locked} onChange={setPicks} actual={actual} eliminated={eliminated} />
 
