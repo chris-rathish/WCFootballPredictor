@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { TOURNAMENT_COLUMNS, TOURNAMENT_PREDS, type TournamentPred } from '../data/tournamentPreds'
 import { supabase } from '../lib/supabase'
 import { mode } from '../lib/average'
@@ -23,19 +23,26 @@ function isCorrect(key: keyof Omit<TournamentPred, 'name'>, val: string): boolea
 }
 
 export default function TournamentPredsPage() {
-  const [podium, setPodium] = useState<Winner[]>([])
+  // actual cup podium, derived from the final + third-place results
+  const [cup, setCup] = useState<Winner[]>([])
 
   useEffect(() => {
     supabase
-      .from('leaderboard')
-      .select('display_name, total_points')
-      .order('total_points', { ascending: false })
+      .from('matches')
+      .select('stage, home_team, away_team, winner, status')
+      .in('stage', ['FINAL', '3RD'])
       .then(({ data }: any) => {
-        const rows = ((data as { display_name: string; total_points: number }[]) ?? [])
-          .filter((r) => r.display_name !== 'Average')
-          .slice(0, 3)
-          .map((r) => ({ name: r.display_name, points: r.total_points }))
-        setPodium(rows)
+        const ms = (data as { stage: string; home_team: string; away_team: string; winner: string; status: string }[]) ?? []
+        const fin = ms.find((m) => m.stage === 'FINAL' && m.status === 'finished' && m.winner)
+        const third = ms.find((m) => m.stage === '3RD' && m.status === 'finished' && m.winner)
+        if (!fin) return
+        const runnerUp = fin.winner === fin.home_team ? fin.away_team : fin.home_team
+        const rows: Winner[] = [
+          { name: fin.winner, team: true, sub: 'Champions' },
+          { name: runnerUp, team: true, sub: 'Runners-up' },
+        ]
+        if (third) rows.push({ name: third.winner, team: true, sub: 'Third place' })
+        setCup(rows)
       })
   }, [])
 
@@ -58,15 +65,19 @@ export default function TournamentPredsPage() {
         Everyone’s pre-tournament picks — Golden Boot, Golden Glove, Player of the Tournament and the overall winner.
       </p>
 
-      <Podium winners={podium} />
+      <Podium winners={cup} title="🏆 World Cup Winners" />
 
-      {/* Actual results banner */}
-      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-2 text-sm">
-        <span className="font-semibold text-emerald-300">Results:</span>
-        <span className="flex items-center gap-1.5">🏆 Winner <Team name={ACTUAL.winner} height={12} /></span>
-        <span>👟 Golden Boot <b className="text-zinc-100">{ACTUAL.goldenBoot}</b></span>
-        <span>🧤 Golden Glove <b className="text-zinc-100">{ACTUAL.goldenGlove}</b></span>
-        <span>⭐ POTM <b className="text-zinc-100">{ACTUAL.potm}</b></span>
+      {/* Tournament awards card */}
+      <div className="mb-6 rounded-2xl border border-emerald-500/25 bg-gradient-to-b from-emerald-500/5 to-transparent p-4">
+        <h2 className="mb-3 text-center text-lg font-bold">🏅 Tournament Awards</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Award icon="🏆" label="Winner">
+            <Team name={ACTUAL.winner} height={14} />
+          </Award>
+          <Award icon="👟" label="Golden Boot">{ACTUAL.goldenBoot}</Award>
+          <Award icon="🧤" label="Golden Glove">{ACTUAL.goldenGlove}</Award>
+          <Award icon="⭐" label="Player of the Tournament">{ACTUAL.potm}</Award>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-700/60">
@@ -116,6 +127,16 @@ export default function TournamentPredsPage() {
         Correct picks are highlighted green. <span className="text-amber-300">Average</span> is the group’s consensus —
         the most common pick in each category.
       </p>
+    </div>
+  )
+}
+
+function Award({ icon, label, children }: { icon: string; label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl bg-zinc-800/50 px-2 py-3 text-center">
+      <div className="text-2xl">{icon}</div>
+      <div className="text-[11px] uppercase tracking-wide text-zinc-400">{label}</div>
+      <div className="flex items-center justify-center gap-1 text-sm font-semibold text-zinc-100">{children}</div>
     </div>
   )
 }

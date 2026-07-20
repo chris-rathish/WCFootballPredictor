@@ -1,6 +1,10 @@
+import Team from './Team'
+
 export interface Winner {
   name: string
-  points: number
+  points?: number // shown as "N pts" when set
+  sub?: string // subtitle shown instead of points (e.g. "Champions")
+  team?: boolean // render name with a flag
 }
 
 const STYLE: Record<number, { medal: string; ring: string; grad: string; h: string; text: string }> = {
@@ -30,10 +34,10 @@ export default function Podium({ winners, title = '🏆 Overall Winners' }: { wi
             >
               <div className="absolute left-2 top-1 text-xs font-bold text-zinc-500">{place}</div>
               <div className="text-3xl sm:text-4xl">{s.medal}</div>
-              <div className={`mt-1 max-w-full truncate text-sm font-bold sm:text-base ${s.text}`} title={w.name}>
-                {w.name}
+              <div className={`mt-1 flex max-w-full items-center justify-center gap-1 truncate text-sm font-bold sm:text-base ${s.text}`} title={w.name}>
+                {w.team ? <Team name={w.name} height={16} /> : w.name}
               </div>
-              <div className="text-xs text-zinc-400">{w.points} pts</div>
+              <div className="text-xs text-zinc-400">{w.points != null ? `${w.points} pts` : w.sub}</div>
             </div>
           )
         })}
