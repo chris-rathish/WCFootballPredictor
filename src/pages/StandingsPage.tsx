@@ -8,6 +8,7 @@ import { actualFromMatches, consensusBracket, scoreBracket } from '../lib/bracke
 import { useAutoRefresh } from '../lib/useAutoRefresh'
 import { SkeletonRows } from '../components/Skeleton'
 import MatchdayWinners from '../components/MatchdayWinners'
+import Podium from '../components/Podium'
 
 const COLS: { key: keyof LeaderboardRow; label: string }[] = [
   { key: 'total_points', label: 'Total' },
@@ -96,6 +97,11 @@ export default function StandingsPage() {
 
   // most perfect predictions earns a +50 bonus (shown as a pill) — the top score, ties included
   const maxPerfect = rows.reduce((m, r) => Math.max(m, r.perfect_predictions), 0)
+  // top-3 podium (real players, by total points)
+  const podium = [...rows]
+    .sort((a, b) => b.total_points - a.total_points)
+    .slice(0, 3)
+    .map((r) => ({ name: r.display_name, points: r.total_points }))
   const allRows = average ? [...rows, average] : rows
   const sorted = [...allRows].sort((a, b) => {
     const av = a[sortKey]
@@ -163,6 +169,7 @@ export default function StandingsPage() {
     <div>
       <h1 className="mb-1 text-xl font-bold">Leaderboard</h1>
       <p className="mb-4 text-xs text-zinc-500">Click a name for their profile · click a column header to sort · ▲▼ shows movement since the last results.</p>
+      {!loading && podium.length === 3 && <Podium winners={podium} title="🏆 Top 3" />}
       {!loading && <MatchdayWinners />}
       {loading ? (
         <SkeletonRows rows={10} />
