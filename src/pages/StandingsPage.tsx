@@ -9,6 +9,7 @@ import { useAutoRefresh } from '../lib/useAutoRefresh'
 import { SkeletonRows } from '../components/Skeleton'
 import MatchdayWinners from '../components/MatchdayWinners'
 import Podium from '../components/Podium'
+import Confetti from '../components/Confetti'
 
 const COLS: { key: keyof LeaderboardRow; label: string }[] = [
   { key: 'total_points', label: 'Total' },
@@ -169,6 +170,7 @@ export default function StandingsPage() {
     <div>
       <h1 className="mb-1 text-xl font-bold">Leaderboard</h1>
       <p className="mb-4 text-xs text-zinc-500">Click a name for their profile · click a column header to sort · ▲▼ shows movement since the last results.</p>
+      {!loading && podium.length === 3 && <Confetti id="leaderboard-top3" />}
       {!loading && podium.length === 3 && <Podium winners={podium} title="🏆 Top 3" />}
       {!loading && <MatchdayWinners />}
       {loading ? (

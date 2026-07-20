@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { mode } from '../lib/average'
 import Team from '../components/Team'
 import Podium, { type Winner } from '../components/Podium'
+import Confetti from '../components/Confetti'
 
 // Final results.
 const ACTUAL: Record<keyof Omit<TournamentPred, 'name'>, string> = {
@@ -65,6 +66,7 @@ export default function TournamentPredsPage() {
         Everyone’s pre-tournament picks — Golden Boot, Golden Glove, Player of the Tournament and the overall winner.
       </p>
 
+      {cup.length === 3 && <Confetti id="cup-winners" />}
       <Podium winners={cup} title="🏆 World Cup Winners" />
 
       {/* Tournament awards card */}

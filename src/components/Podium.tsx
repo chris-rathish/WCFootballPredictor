@@ -33,7 +33,12 @@ export default function Podium({ winners, title = '🏆 Overall Winners' }: { wi
               className={`relative flex w-28 flex-col items-center rounded-xl bg-gradient-to-b ${s.grad} to-transparent px-2 ${s.h} text-center ring-1 ${s.ring} sm:w-36`}
             >
               <div className="absolute left-2 top-1 text-xs font-bold text-zinc-500">{place}</div>
-              <div className="text-3xl sm:text-4xl">{s.medal}</div>
+              <div
+                className="text-3xl sm:text-4xl"
+                style={{ animation: `podium-pop 0.5s ${place === 1 ? 0.15 : place === 2 ? 0 : 0.3}s both` }}
+              >
+                {s.medal}
+              </div>
               <div className={`mt-1 flex max-w-full items-center justify-center gap-1 truncate text-sm font-bold sm:text-base ${s.text}`} title={w.name}>
                 {w.team ? <Team name={w.name} height={16} /> : w.name}
               </div>
