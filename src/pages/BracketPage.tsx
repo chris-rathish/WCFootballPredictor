@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import type { BracketPicks, Match, R32Matchup, Settings } from '../lib/types'
-import { actualFromMatches, eliminatedFromMatches, scoreBracket } from '../lib/bracket'
+import { actualFromMatches, consensusBracket, eliminatedFromMatches, scoreBracket } from '../lib/bracket'
+import { AVERAGE_USER_ID } from '../lib/average'
 import Bracket from '../components/Bracket'
 
 interface BracketRow {
@@ -58,14 +59,18 @@ export default function BracketPage() {
 
   const standings = useMemo<BracketRow[]>(() => {
     if (!settings) return []
-    return allBrackets
-      .map((b) => ({
-        user_id: b.user_id,
-        display_name: names[b.user_id] ?? '—',
-        picks: b.picks,
-        score: scoreBracket(b.picks, actual),
-      }))
-      .sort((a, b) => b.score - a.score)
+    const rows = allBrackets.map((b) => ({
+      user_id: b.user_id,
+      display_name: names[b.user_id] ?? '—',
+      picks: b.picks,
+      score: scoreBracket(b.picks, actual),
+    }))
+    // Average = consensus of everyone's brackets, scored like a player
+    if (allBrackets.length > 0) {
+      const cons = consensusBracket(allBrackets.map((b) => b.picks))
+      rows.push({ user_id: AVERAGE_USER_ID, display_name: 'Average', picks: cons, score: scoreBracket(cons, actual) })
+    }
+    return rows.sort((a, b) => b.score - a.score)
   }, [allBrackets, names, actual, settings])
 
   const myScore = scoreBracket(picks, actual)
@@ -147,11 +152,16 @@ export default function BracketPage() {
             <tbody>
               {standings.map((r, i) => {
                 const me = r.user_id === session?.user?.id
+                const isAvg = r.user_id === AVERAGE_USER_ID
                 return (
-                  <tr key={r.user_id} className={`border-t border-zinc-700/40 ${me ? 'bg-red-500/10' : ''}`}>
+                  <tr key={r.user_id} className={`border-t border-zinc-700/40 ${me ? 'bg-red-500/10' : isAvg ? 'bg-amber-500/10 italic text-amber-200' : ''}`}>
                     <td className="px-3 py-2">{i + 1}</td>
                     <td className={`px-3 py-2 font-medium ${me ? 'text-red-200' : ''}`}>
-                      {r.display_name} {me && <span className="text-xs text-red-400">(you)</span>}
+                      {isAvg ? (
+                        <>Average <span className="pill bg-amber-500/20 text-amber-300">consensus</span></>
+                      ) : (
+                        <>{r.display_name} {me && <span className="text-xs text-red-400">(you)</span>}</>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-right font-bold tabular-nums">{r.score}</td>
                   </tr>

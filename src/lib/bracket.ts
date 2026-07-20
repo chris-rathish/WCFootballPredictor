@@ -1,4 +1,5 @@
 import type { BracketPicks, Match, R32Matchup, Settings } from './types'
+import { mode } from './average'
 
 // ----- Actual results derived from finished knockout matches (by stage) -----
 // Each round's "advancers" = winners of that round's matches:
@@ -63,6 +64,27 @@ export function scoreBracket(picks: BracketPicks, actual: BracketPicks): number 
     total += STAGE_POINTS
   }
   return total
+}
+
+// The "Average" bracket: the most common (mode) pick at every slot across all
+// submitted brackets — scored exactly like a player's bracket.
+export function consensusBracket(all: BracketPicks[]): BracketPicks {
+  const out: BracketPicks = {}
+  for (const r of ['R16', 'QF', 'SF', 'FINAL'] as const) {
+    const lists = all.map((b) => (b[r] as string[] | undefined) ?? [])
+    const len = lists.reduce((m, l) => Math.max(m, l.length), 0)
+    const arr: string[] = []
+    for (let i = 0; i < len; i++) {
+      const m = mode(lists.map((l) => l[i]).filter((x): x is string => !!x))
+      if (m) arr[i] = m
+    }
+    out[r] = arr
+  }
+  const champ = mode(all.map((b) => b.CHAMPION).filter((x): x is string => !!x))
+  const third = mode(all.map((b) => b.THIRD).filter((x): x is string => !!x))
+  if (champ) out.CHAMPION = champ
+  if (third) out.THIRD = third
+  return out
 }
 
 // Given the 16 R32 matchups and a set of chosen winners per round, derive the
