@@ -57,6 +57,7 @@ export interface LeaderboardRow {
   tournament_predictions: number
   total_points: number
   perfect_predictions: number
+  correct_predictions?: number // matches scored with any points (group + knockout); filled client-side
 }
 
 // Bracket pick shape stored in brackets.picks / settings.actual_bracket
