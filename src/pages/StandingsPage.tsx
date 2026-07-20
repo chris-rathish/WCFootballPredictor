@@ -94,6 +94,8 @@ export default function StandingsPage() {
     }
   }
 
+  // most perfect predictions earns a +50 bonus (shown as a pill) — the top score, ties included
+  const maxPerfect = rows.reduce((m, r) => Math.max(m, r.perfect_predictions), 0)
   const allRows = average ? [...rows, average] : rows
   const sorted = [...allRows].sort((a, b) => {
     const av = a[sortKey]
@@ -141,7 +143,16 @@ export default function StandingsPage() {
         </td>
         {COLS.map((c) => (
           <td key={c.key} className={`px-3 py-2 text-right tabular-nums ${c.key === 'total_points' ? 'font-bold' : ''}`}>
-            {r[c.key] as number}
+            {c.key === 'perfect_predictions' && !isAvg && maxPerfect > 0 && r.perfect_predictions === maxPerfect ? (
+              <span className="inline-flex items-center justify-end gap-1">
+                {r.perfect_predictions}
+                <span className="pill bg-amber-500/20 text-[10px] text-amber-300" title="Most perfect predictions bonus (+50, counted in Tournament Predictions)">
+                  +50
+                </span>
+              </span>
+            ) : (
+              (r[c.key] as number)
+            )}
           </td>
         ))}
       </tr>
