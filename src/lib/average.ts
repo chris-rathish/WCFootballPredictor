@@ -10,10 +10,8 @@ export const AVERAGE_USER_ID = '__average__'
 const AVERAGE_GROUP_MATCHES = 560
 const AVERAGE_GROUP_PREDICTION = 255
 // consensus tournament picks (Mbappe ✓, Unai Simon ✓, Yamal ✗, France ✗) = 2/4 × 50.
-// (no "all 4" or "most correct" bonus for the consensus.)
+// (no "all 4" or "most perfect" bonus for the consensus.)
 const AVERAGE_TOURNEY = 100
-// consensus correct predictions (any points): group 63 + knockout 28
-const AVERAGE_CORRECT = 91
 
 type Pred = Pick<Prediction, 'match_id' | 'home_score' | 'away_score' | 'winner' | 'motm'>
 
@@ -72,6 +70,5 @@ export function computeAverageRow(matches: Match[], predictions: Pred[], bracket
     tournament_predictions: AVERAGE_TOURNEY,
     total_points: AVERAGE_GROUP_MATCHES + AVERAGE_GROUP_PREDICTION + koPts + bracketPts + AVERAGE_TOURNEY,
     perfect_predictions: perfect,
-    correct_predictions: AVERAGE_CORRECT,
   }
 }

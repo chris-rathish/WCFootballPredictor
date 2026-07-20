@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext'
 import type { BracketPicks, LeaderboardRow, Match } from '../lib/types'
 import { AVERAGE_NAME, AVERAGE_USER_ID, computeAverageRow } from '../lib/average'
 import { actualFromMatches, consensusBracket, scoreBracket } from '../lib/bracket'
-import { GROUP_CORRECT_BY_NAME } from '../data/groupCorrect'
 import { useAutoRefresh } from '../lib/useAutoRefresh'
 import { SkeletonRows } from '../components/Skeleton'
 import MatchdayWinners from '../components/MatchdayWinners'
@@ -17,11 +16,8 @@ const COLS: { key: keyof LeaderboardRow; label: string }[] = [
   { key: 'knockout_stage_matches', label: 'Knockout Stage Matches' },
   { key: 'knockout_stage_prediction', label: 'Knockout Stage Prediction' },
   { key: 'tournament_predictions', label: 'Tournament Predictions' },
-  { key: 'correct_predictions', label: '✅ Correct' },
+  { key: 'perfect_predictions', label: '🎯 Perfect' },
 ]
-
-// +50 bonus for the most correct predictions (top 6, group + knockout) — shown as a pill
-const CORRECT_BONUS = new Set(['Hari', 'Sunz', 'Rayhaan', 'Bhargav', 'Dennis', 'FTP'])
 
 type SortKey = keyof LeaderboardRow
 const SNAP_KEY = 'wc-rank-snapshot-v2'
@@ -42,7 +38,7 @@ export default function StandingsPage() {
     const [{ data: lb }, { data: m }, { data: preds }, { data: brk }] = await Promise.all([
       supabase.from('leaderboard').select('*').order('total_points', { ascending: false }),
       supabase.from('matches').select('*'),
-      supabase.from('predictions').select('match_id, user_id, points, home_score, away_score, winner, motm'),
+      supabase.from('predictions').select('match_id, home_score, away_score, winner, motm'),
       supabase.from('brackets').select('picks'),
     ])
     const matches = (m as Match[]) ?? []
@@ -52,16 +48,6 @@ export default function StandingsPage() {
     const brackets = ((brk as { picks: BracketPicks }[]) ?? []).map((b) => b.picks)
     const bracketPts =
       tourneyOver && brackets.length ? scoreBracket(consensusBracket(brackets), actualFromMatches(matches)) : 0
-
-    // total correct predictions per player = group (archive) + knockout (DB, points > 0)
-    const finishedIds = new Set(matches.filter((mt) => mt.status === 'finished').map((mt) => mt.id))
-    const koCorrectByUser: Record<string, number> = {}
-    ;((preds as any[]) ?? []).forEach((p) => {
-      if (finishedIds.has(p.match_id) && (p.points ?? 0) > 0) koCorrectByUser[p.user_id] = (koCorrectByUser[p.user_id] ?? 0) + 1
-    })
-    real.forEach((r) => {
-      r.correct_predictions = (GROUP_CORRECT_BY_NAME[r.display_name] ?? 0) + (koCorrectByUser[r.user_id] ?? 0)
-    })
 
     const avg = computeAverageRow(matches, (preds as any[]) ?? [], bracketPts)
     setRows(real)
@@ -155,18 +141,7 @@ export default function StandingsPage() {
         </td>
         {COLS.map((c) => (
           <td key={c.key} className={`px-3 py-2 text-right tabular-nums ${c.key === 'total_points' ? 'font-bold' : ''}`}>
-            {c.key === 'correct_predictions' ? (
-              <span className="inline-flex items-center justify-end gap-1">
-                {r.correct_predictions ?? 0}
-                {CORRECT_BONUS.has(r.display_name) && (
-                  <span className="pill bg-amber-500/20 text-[10px] text-amber-300" title="Most correct predictions bonus (+50, counted in Tournament Predictions)">
-                    +50
-                  </span>
-                )}
-              </span>
-            ) : (
-              (r[c.key] as number)
-            )}
+            {r[c.key] as number}
           </td>
         ))}
       </tr>
@@ -210,10 +185,8 @@ export default function StandingsPage() {
         </div>
       )}
       <p className="mt-3 text-xs text-zinc-500">
-        Match points are calculated automatically. <span className="text-emerald-300">✅ Correct</span> = matches you
-        scored any points on (group + knockout); the top 6 earn a <span className="text-amber-300">+50</span> bonus
-        (counted in Tournament Predictions). <span className="text-amber-300">Average</span> is the group’s consensus —
-        each match it uses the most common score, winner and MOTM everyone picked, then is scored like a player.
+        Match points are calculated automatically. <span className="text-amber-300">Average</span> is the group’s
+        consensus — each match it uses the most common score, winner and MOTM everyone picked, then is scored like a player.
       </p>
     </div>
   )
