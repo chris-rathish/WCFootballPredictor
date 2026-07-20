@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import type { LeaderboardRow, Match } from '../lib/types'
+import type { BracketPicks, LeaderboardRow, Match } from '../lib/types'
 import { AVERAGE_NAME, AVERAGE_USER_ID, computeAverageRow } from '../lib/average'
+import { actualFromMatches, consensusBracket, scoreBracket } from '../lib/bracket'
 import { useAutoRefresh } from '../lib/useAutoRefresh'
 import { SkeletonRows } from '../components/Skeleton'
 import MatchdayWinners from '../components/MatchdayWinners'
@@ -34,14 +35,20 @@ export default function StandingsPage() {
   const [moves, setMoves] = useState<Record<string, number>>({})
 
   const load = useCallback(async () => {
-    const [{ data: lb }, { data: m }, { data: preds }] = await Promise.all([
+    const [{ data: lb }, { data: m }, { data: preds }, { data: brk }] = await Promise.all([
       supabase.from('leaderboard').select('*').order('total_points', { ascending: false }),
       supabase.from('matches').select('*'),
       supabase.from('predictions').select('match_id, home_score, away_score, winner, motm'),
+      supabase.from('brackets').select('picks'),
     ])
     const matches = (m as Match[]) ?? []
     const real = ((lb as LeaderboardRow[]) ?? []).filter((r) => r.display_name !== AVERAGE_NAME)
-    const avg = computeAverageRow(matches, (preds as any[]) ?? [])
+    // consensus bracket score — gated until the FINAL is played, like real players'
+    const tourneyOver = matches.some((mt) => mt.stage === 'FINAL' && mt.status === 'finished')
+    const brackets = ((brk as { picks: BracketPicks }[]) ?? []).map((b) => b.picks)
+    const bracketPts =
+      tourneyOver && brackets.length ? scoreBracket(consensusBracket(brackets), actualFromMatches(matches)) : 0
+    const avg = computeAverageRow(matches, (preds as any[]) ?? [], bracketPts)
     setRows(real)
     setAverage(avg)
 

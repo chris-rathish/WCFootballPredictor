@@ -9,6 +9,9 @@ export const AVERAGE_NAME = 'Average'
 export const AVERAGE_USER_ID = '__average__'
 const AVERAGE_GROUP_MATCHES = 560
 const AVERAGE_GROUP_PREDICTION = 255
+// consensus tournament picks (Mbappe ✓, Unai Simon ✓, Yamal ✗, France ✗) = 2/4 × 50.
+// (no "all 4" or "most perfect" bonus for the consensus.)
+const AVERAGE_TOURNEY = 100
 
 type Pred = Pick<Prediction, 'match_id' | 'home_score' | 'away_score' | 'winner' | 'motm'>
 
@@ -32,7 +35,9 @@ export function mode<T extends string | number>(values: T[]): T | null {
   return best
 }
 
-export function computeAverageRow(matches: Match[], predictions: Pred[]): LeaderboardRow {
+// bracketPts = the consensus bracket's score (already gated to 0 until the FINAL
+// is played by the caller), mirroring how real players' bracket points are gated.
+export function computeAverageRow(matches: Match[], predictions: Pred[], bracketPts = 0): LeaderboardRow {
   const byMatch = new Map<number, Pred[]>()
   for (const p of predictions) {
     const arr = byMatch.get(p.match_id) ?? []
@@ -61,9 +66,9 @@ export function computeAverageRow(matches: Match[], predictions: Pred[]): Leader
     group_stage_matches: AVERAGE_GROUP_MATCHES,
     group_stage_prediction: AVERAGE_GROUP_PREDICTION,
     knockout_stage_matches: koPts,
-    knockout_stage_prediction: 0,
-    tournament_predictions: 0,
-    total_points: AVERAGE_GROUP_MATCHES + AVERAGE_GROUP_PREDICTION + koPts,
+    knockout_stage_prediction: bracketPts,
+    tournament_predictions: AVERAGE_TOURNEY,
+    total_points: AVERAGE_GROUP_MATCHES + AVERAGE_GROUP_PREDICTION + koPts + bracketPts + AVERAGE_TOURNEY,
     perfect_predictions: perfect,
   }
 }
